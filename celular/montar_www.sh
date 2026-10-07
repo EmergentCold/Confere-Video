@@ -15,7 +15,7 @@ rm -rf www && mkdir -p www/ort
 ORT=node_modules/onnxruntime-web/dist
 cp "$ORT/ort.wasm.min.js" www/
 cp "$ORT/ort-wasm-simd-threaded.mjs" "$ORT/ort-wasm-simd-threaded.wasm" www/ort/
-base64 -w0 ../web/yolo11n-pose.onnx > www/yolo11n-pose.onnx.txt
+cp ../web/yolo11n-pose.onnx www/
 cp ../demo/demo_esteira_cigarros.mp4 www/demo.mp4
 cp ../web/demo.webm www/demo.webm
 du -sh www

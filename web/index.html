@@ -453,10 +453,14 @@ async function carregarIA(aviso) {
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.wasmPaths = { mjs: new URL("ort/ort-wasm-simd-threaded.mjs", location.href).href, wasm: new URL("ort/ort-wasm-simd-threaded.wasm", location.href).href };
   aviso("Baixando a IA (11 MB)…");
-  // a IA vai publicada como texto (base64): é o formato de arquivo que a página pode receber
-  const r = await fetch("yolo11n-pose.onnx.txt"); if (!r.ok) throw new Error("não consegui baixar a IA (" + r.status + ")");
-  const b64 = (await r.text()).trim(), bin = atob(b64), bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  // no aplicativo a IA vai como arquivo (.onnx); na página web, como texto (base64), o formato que ela pode receber
+  let bytes, r = await fetch("yolo11n-pose.onnx").catch(() => null);
+  if (r && r.ok) bytes = new Uint8Array(await r.arrayBuffer());
+  else {
+    r = await fetch("yolo11n-pose.onnx.txt"); if (!r.ok) throw new Error("não consegui baixar a IA (" + r.status + ")");
+    const bin = atob((await r.text()).trim()); bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  }
   aviso("Preparando a IA…");
   sessao = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
   return sessao;
