@@ -1,0 +1,837 @@
+<title>ConfereVídeo Web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: posto de separação — palco do vídeo à esquerda, painel de conferência à direita; abas para áreas e relatório */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --ink: #16202e;
+  --muted: #5b6678;
+  --line: #d9dfe8;
+  --accent: #f2b705;        /* amarelo de segurança (colete, faixa do piso) */
+  --accent-ink: #1d1600;
+  --brand: #0f4c81;
+  --ok: #15803d;
+  --bad: #b91c1c;
+  --t-sem_leitor: #c2410c;
+  --t-caixa_errada: #7c3aed;
+  --t-sem_bipe: #0e7490;
+  --t-bipe_duplo: #b91c1c;
+  --stage: #0b1119;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141c; --surface: #161e29; --ink: #e6ebf2; --muted: #98a3b5; --line: #263142;
+    --accent: #f5c02a; --accent-ink: #1d1600; --brand: #6aa8e0; --ok: #4ade80; --bad: #f87171;
+    --t-sem_leitor: #fb923c; --t-caixa_errada: #a78bfa; --t-sem_bipe: #22b8cf; --t-bipe_duplo: #f87171;
+    --stage: #05080c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141c; --surface: #161e29; --ink: #e6ebf2; --muted: #98a3b5; --line: #263142;
+  --accent: #f5c02a; --accent-ink: #1d1600; --brand: #6aa8e0; --ok: #4ade80; --bad: #f87171;
+  --t-sem_leitor: #fb923c; --t-caixa_errada: #a78bfa; --t-sem_bipe: #22b8cf; --t-bipe_duplo: #f87171;
+  --stage: #05080c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 40px; display: grid; gap: 16px; }
+header.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; justify-content: space-between; border-bottom: 3px solid var(--accent); padding-bottom: 12px; }
+.marca { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.marca h1 { margin: 0; font: 700 34px/1 var(--f-display); letter-spacing: .01em; text-wrap: balance; }
+.marca h1 span { color: var(--brand); }
+.marca p { margin: 0; color: var(--muted); }
+.posto { font: 500 12px/1.3 var(--f-mono); color: var(--muted); text-align: right; }
+.posto b { display: block; color: var(--ink); font: 600 13px/1.3 var(--f-body); }
+
+nav.abas { display: flex; gap: 4px; flex-wrap: wrap; }
+nav.abas button { font: 600 14px/1 var(--f-body); padding: 10px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 6px; cursor: pointer; }
+nav.abas button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+nav.abas button:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, label.arquivo:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.grade { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+@media (max-width: 960px) { .grade { grid-template-columns: minmax(0, 1fr); } }
+
+.palco { background: var(--stage); border-radius: 8px; overflow: hidden; position: relative; }
+.palco canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 72vh; margin-inline: auto; }
+.faixa { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 8px 8px; }
+.faixa .status { flex: 1 1 220px; min-width: 0; font-size: 14px; color: var(--muted); }
+.faixa .status b { color: var(--ink); font-weight: 600; }
+.barra { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; flex-basis: 100%; }
+.barra i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+
+button.bt { font: 600 14px/1 var(--f-body); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+button.bt:hover { border-color: var(--muted); }
+button.bt.prim { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.bt.prim:hover { filter: brightness(1.05); }
+button.bt:disabled { opacity: .45; cursor: not-allowed; }
+label.arquivo { display: inline-flex; align-items: center; font: 600 14px/1 var(--f-body); padding: 10px 14px; border-radius: 6px; border: 1px dashed var(--muted); cursor: pointer; }
+label.arquivo input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+.painel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.painel h2, .secao h2 { margin: 0; font: 700 20px/1.1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpi { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.kpi b { display: block; font: 600 26px/1.1 var(--f-mono); font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.kpi.bad b { color: var(--bad); }
+.kpi.ok b { color: var(--ok); }
+.vazio { color: var(--muted); font-size: 14px; border: 1px dashed var(--line); border-radius: 6px; padding: 12px; }
+.lista { display: grid; gap: 8px; max-height: 640px; overflow-y: auto; }
+.erro { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; border: 1px solid var(--line); border-left: 4px solid var(--cor); border-radius: 6px; padding: 8px; }
+.erro img { width: 112px; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; background: var(--stage); }
+.erro .tipo { font: 600 14px/1.25 var(--f-body); color: var(--cor); }
+.erro .meta { font: 12px/1.4 var(--f-mono); color: var(--muted); }
+.erro .acoes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.erro .acoes button { font: 500 12px/1 var(--f-body); padding: 6px 8px; border-radius: 5px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.erro .clipe { grid-column: 1 / -1; }
+.erro .clipe img { width: 100%; aspect-ratio: auto; object-fit: contain; }
+.chip { display: inline-block; font: 600 11px/1 var(--f-body); letter-spacing: .04em; text-transform: uppercase; padding: 4px 6px; border-radius: 4px; background: color-mix(in srgb, var(--cor) 15%, transparent); color: var(--cor); }
+
+.secao { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.secao p { margin: 0; max-width: 68ch; color: var(--muted); }
+.ferramentas { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tipos-area { display: flex; flex-wrap: wrap; gap: 6px; }
+.tipos-area button { font: 600 13px/1 var(--f-body); padding: 9px 11px; border-radius: 6px; border: 2px solid var(--cz); background: transparent; color: var(--ink); cursor: pointer; }
+.tipos-area button[aria-pressed="true"] { background: var(--cz); color: #fff; }
+.tecla { font: 500 11px var(--f-mono); opacity: .7; margin-right: 4px; }
+.editor { background: var(--stage); border-radius: 8px; overflow: hidden; }
+.editor canvas { display: block; width: auto; height: auto; cursor: crosshair; max-width: 100%; max-height: 80vh; margin-inline: auto; }
+
+.config { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.config fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 0; display: grid; gap: 6px; min-width: 0; }
+.config legend { font: 600 12px var(--f-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 4px; }
+.config label { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.config input[type=range] { flex: 1; accent-color: var(--brand); }
+.config output { font: 500 13px var(--f-mono); min-width: 52px; text-align: right; }
+
+.tabela { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font: 600 12px var(--f-body); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.barras { display: grid; gap: 8px; }
+.barras div { display: grid; grid-template-columns: 200px minmax(0, 1fr) 40px; gap: 10px; align-items: center; font-size: 14px; }
+.barras i { display: block; height: 14px; border-radius: 3px; background: var(--cor); min-width: 2px; }
+.barras b { font: 600 14px var(--f-mono); text-align: right; }
+@media (max-width: 560px) { .barras div { grid-template-columns: 120px minmax(0, 1fr) 32px; } .kpi b { font-size: 22px; } }
+
+.aviso { border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 6px; padding: 10px 12px; font-size: 14px; color: var(--muted); background: var(--surface); }
+.aviso b { color: var(--ink); }
+textarea { width: 100%; min-height: 120px; font: 12px/1.4 var(--f-mono); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+@media (prefers-reduced-motion: reduce) { .barra i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="marca">
+      <h1>Confere<span>Vídeo</span> Web</h1>
+      <p>Conferência da separação por vídeo, direto no navegador: prateleira → leitor → caixa.</p>
+    </div>
+    <div class="posto" id="posto"><b>Emergent Cold · Guarulhos II</b>Esteira de separação · Posto 03 (demonstração)</div>
+  </header>
+
+  <nav class="abas" role="tablist" aria-label="Seções">
+    <button role="tab" id="aba-conferir" aria-selected="true" aria-controls="sec-conferir">Conferir vídeo</button>
+    <button role="tab" id="aba-areas" aria-selected="false" aria-controls="sec-areas">Áreas do posto</button>
+    <button role="tab" id="aba-relatorio" aria-selected="false" aria-controls="sec-relatorio">Relatório</button>
+    <button role="tab" id="aba-config" aria-selected="false" aria-controls="sec-config">Configurações</button>
+  </nav>
+
+  <!-- CONFERIR -->
+  <section id="sec-conferir" role="tabpanel" aria-labelledby="aba-conferir">
+    <div class="grade">
+      <div>
+        <div class="palco"><canvas id="tela" width="1280" height="720" aria-label="Vídeo com as marcações da IA"></canvas></div>
+        <div class="faixa">
+          <button class="bt prim" id="bt-conferir">▶ Conferir a demonstração</button>
+          <button class="bt" id="bt-parar" disabled>Parar</button>
+          <label class="arquivo" id="lb-arquivo">Abrir um vídeo seu…<input type="file" id="arquivo" accept="video/*"></label>
+          <label class="arquivo" id="lb-gravar">Gravar com a câmera…<input type="file" id="gravar" accept="video/*" capture="environment"></label>
+          <button class="bt" id="bt-demo" hidden>Voltar para a demonstração</button>
+          <div class="status" id="status"><b>Pronto.</b> A demonstração mostra um posto de separação de cigarros com um erro de cada tipo.</div>
+          <div class="barra" aria-hidden="true"><i id="progresso"></i></div>
+        </div>
+      </div>
+      <aside class="painel" aria-label="Resultado da conferência">
+        <h2>Conferência</h2>
+        <div class="kpis">
+          <div class="kpi"><b id="k-itens">0</b><span>Itens</span></div>
+          <div class="kpi bad"><b id="k-erros">0</b><span>Com erro</span></div>
+          <div class="kpi ok"><b id="k-taxa">—</b><span>Sem erro</span></div>
+        </div>
+        <div class="lista" id="lista"><div class="vazio" id="lista-vazia">Os erros aparecem aqui assim que a IA encontra, com a foto do momento e o recorte para assistir.</div></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ÁREAS -->
+  <section id="sec-areas" role="tabpanel" aria-labelledby="aba-areas" hidden>
+    <div class="secao">
+      <h2>Áreas do posto</h2>
+      <p>Escolha o tipo e clique nos cantos da área na imagem. Prateleira e outras caixas podem ter mais de uma forma: use <b>Nova forma</b>. Na caixa do posto, marque só a abertura. As áreas valem para o vídeo aberto agora e ficam guardadas neste navegador.</p>
+      <div class="tipos-area" id="tipos-area"></div>
+      <div class="editor"><canvas id="editor" width="1280" height="720" aria-label="Imagem do posto para marcar as áreas"></canvas></div>
+      <div class="ferramentas">
+        <button class="bt" id="ar-nova">Nova forma</button>
+        <button class="bt" id="ar-desfazer">Desfazer ponto</button>
+        <button class="bt" id="ar-limpar">Limpar este tipo</button>
+        <button class="bt" id="ar-demo">Usar as áreas da demonstração</button>
+        <label for="ar-tempo">Imagem do segundo</label>
+        <input type="range" id="ar-tempo" min="0" max="60" step="1" value="5">
+        <output id="ar-tempo-v" for="ar-tempo">5 s</output>
+      </div>
+      <div class="aviso" id="ar-falta"></div>
+      <details>
+        <summary>Levar estas áreas para o programa instalado</summary>
+        <p>Copie o texto abaixo e salve como <b>areas.yaml</b> na pasta do ConfereVídeo.</p>
+        <textarea id="ar-yaml" readonly></textarea>
+        <button class="bt" id="ar-copiar">Copiar</button>
+      </details>
+    </div>
+  </section>
+
+  <!-- RELATÓRIO -->
+  <section id="sec-relatorio" role="tabpanel" aria-labelledby="aba-relatorio" hidden>
+    <div class="secao">
+      <h2>Relatório da conferência</h2>
+      <p id="rel-resumo">Confira um vídeo para ver o relatório.</p>
+      <div class="barras" id="rel-barras"></div>
+      <div class="tabela"><table><thead><tr><th>Nº</th><th>Momento no vídeo</th><th>Erro</th><th>Bipes ouvidos</th></tr></thead><tbody id="rel-linhas"></tbody></table></div>
+      <div class="ferramentas"><button class="bt" id="rel-csv">Baixar planilha (CSV)</button><button class="bt" id="rel-copiar">Copiar planilha</button><span class="status" id="rel-msg"></span></div>
+    </div>
+  </section>
+
+  <!-- CONFIGURAÇÕES -->
+  <section id="sec-config" role="tabpanel" aria-labelledby="aba-config" hidden>
+    <div class="secao">
+      <h2>Configurações</h2>
+      <p>Os mesmos ajustes do programa instalado. Valem para a próxima conferência.</p>
+      <div class="config">
+        <fieldset><legend>Quais erros verificar</legend>
+          <label><input type="checkbox" id="v-sem_leitor" checked> Colocou na caixa sem passar no leitor</label>
+          <label><input type="checkbox" id="v-caixa_errada" checked> Colocou em outra caixa</label>
+          <label><input type="checkbox" id="v-sem_bipe" checked> Passou no leitor, mas não bipou</label>
+          <label><input type="checkbox" id="v-bipe_duplo" checked> Bipe duplo para um item</label>
+        </fieldset>
+        <fieldset><legend>Som do bipe</legend>
+          <label><input type="checkbox" id="c-som" checked> Usar o som do vídeo para ouvir o bipe</label>
+          <label for="c-limiar">Sensibilidade</label>
+          <label><input type="range" id="c-limiar" min="6" max="30" step="1" value="15"><output id="c-limiar-v">15 dB</output></label>
+          <span class="status">Menor número = ouve bipes mais fracos (e mais barulho).</span>
+        </fieldset>
+        <fieldset><legend>Recortes</legend>
+          <label for="c-antes">Segundos antes do erro</label>
+          <label><input type="range" id="c-antes" min="1" max="8" step="1" value="3"><output id="c-antes-v">3 s</output></label>
+          <label for="c-depois">Segundos depois do erro</label>
+          <label><input type="range" id="c-depois" min="1" max="8" step="1" value="3"><output id="c-depois-v">3 s</output></label>
+        </fieldset>
+      </div>
+      <div class="aviso"><b>Câmera ao vivo:</b> a página web confere vídeos gravados. Para a câmera e o microfone do posto ao vivo, use o programa instalado (ConfereVideo_Instalador.exe).</div>
+    </div>
+  </section>
+</div>
+
+<video id="video" muted playsinline preload="auto" crossorigin="anonymous" hidden></video>
+<script src="ort.wasm.min.js"></script>
+<script>
+"use strict";
+// ======================================================================
+// Configuração (a mesma do motor.py)
+// ======================================================================
+const CFG = {
+  tamanho_imagem: 640, confianca_pessoa: 0.20, confianca_punho: 0.30, analisar_por_segundo: 8,
+  estender_mao: 0.35, quadros_para_confirmar: { prateleira: 2, leitor: 1, caixa_posto: 2, outras_caixas: 2 },
+  tempo_max_ciclo_seg: 20, verificar: { sem_leitor: true, caixa_errada: true, sem_bipe: true, bipe_duplo: true },
+  usar_som_do_bipe: true, bipe_freq_hz: 0, bipe_limiar_db: 15, bipe_folga_seg: 0.6,
+  segundos_antes: 3, segundos_depois: 3, recorte_max_seg: 25,
+};
+const TIPOS = { sem_leitor: "Colocou na caixa sem passar no leitor", caixa_errada: "Colocou em outra caixa",
+  sem_bipe: "Passou no leitor, mas não bipou", bipe_duplo: "Bipe duplo para um item" };
+const TIPOS_CURTO = { sem_leitor: "Sem passar no leitor", caixa_errada: "Outra caixa", sem_bipe: "Sem bipe", bipe_duplo: "Bipe duplo" };
+const AVISO = { sem_leitor: "ERRO: NAO PASSOU NO LEITOR", caixa_errada: "ERRO: CAIXA ERRADA", sem_bipe: "ERRO: PASSOU SEM BIPAR", bipe_duplo: "ERRO: BIPE DUPLO" };
+const ZONAS = ["prateleira", "leitor", "caixa_posto", "outras_caixas"];
+const CORES = { prateleira: "rgb(230,160,60)", leitor: "rgb(0,200,230)", caixa_posto: "rgb(60,180,60)", outras_caixas: "rgb(220,60,60)", operador: "rgb(150,150,150)" };
+const AREAS_DEMO = {"prateleiras": [[[0.7031, 0.2986], [0.8672, 0.2986], [0.8672, 0.6111], [0.7031, 0.6111]]], "leitor": [[0.6367, 0.4167], [0.6953, 0.4167], [0.6953, 0.5486], [0.6367, 0.5486]], "caixa_posto": [[0.4258, 0.7014], [0.5742, 0.7014], [0.5742, 0.8403], [0.4258, 0.8403]], "outras_caixas": [[[0.2422, 0.6181], [0.4047, 0.6181], [0.4047, 0.8403], [0.2422, 0.8403]], [[0.6055, 0.7014], [0.7539, 0.7014], [0.7539, 0.8403], [0.6055, 0.8403]]], "area_operador": []};
+const $ = (id) => document.getElementById(id);
+const hms = (s) => { s = Math.max(0, Math.floor(s)); return [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":"); };
+const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const ler = (k) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
+const corTipo = (t) => getComputedStyle(document.documentElement).getPropertyValue("--t-" + t).trim();
+
+// ======================================================================
+// Áreas (polígonos em proporção da imagem, como no areas.yaml)
+// ======================================================================
+function dentro(pol, x, y) {
+  let d = false;
+  for (let i = 0, j = pol.length - 1; i < pol.length; j = i++) {
+    const [xi, yi] = pol[i], [xj, yj] = pol[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) d = !d;
+  }
+  return d;
+}
+class Areas {
+  constructor(dados, w, h) {
+    const pol = (p) => (p && p.length >= 3) ? p.map(([x, y]) => [x * w, y * h]) : null;
+    const lista = (v) => (v || []).map(pol).filter(Boolean);
+    this.zonas = { prateleira: lista(dados.prateleiras), leitor: [pol(dados.leitor)].filter(Boolean),
+      caixa_posto: [pol(dados.caixa_posto)].filter(Boolean), outras_caixas: lista(dados.outras_caixas) };
+    this.operador = pol(dados.area_operador);
+  }
+  static faltando(d) { return [["prateleiras", "prateleira"], ["leitor", "leitor"], ["caixa_posto", "caixa do posto"]].filter(([k]) => !(d[k] && d[k].length)).map(([, n]) => n); }
+  onde(p) { const s = new Set(); for (const z of ZONAS) if (this.zonas[z].some(q => dentro(q, p[0], p[1]))) s.add(z); return s; }
+  centro(z) { const q = this.zonas[z][0]; return [q.reduce((a, p) => a + p[0], 0) / q.length, q.reduce((a, p) => a + p[1], 0) / q.length]; }
+}
+
+// ======================================================================
+// Som do bipe (porta do motor.py: espectro, frequência do bipe, DetectorBipe)
+// ======================================================================
+const NFFT = 512, HOP = 160, SR = 16000;
+const JANELA = Float64Array.from({ length: NFFT }, (_, n) => 0.5 - 0.5 * Math.cos(2 * Math.PI * n / (NFFT - 1)));
+const REV = (() => { const r = new Uint16Array(NFFT); const bits = Math.log2(NFFT); for (let i = 0; i < NFFT; i++) { let x = i, y = 0; for (let b = 0; b < bits; b++) { y = (y << 1) | (x & 1); x >>= 1; } r[i] = y; } return r; })();
+function fftMag(re, im) {
+  for (let i = 0; i < NFFT; i++) { const j = REV[i]; if (j > i) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+  for (let len = 2; len <= NFFT; len <<= 1) {
+    const ang = -2 * Math.PI / len, wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < NFFT; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len / 2; k++) {
+        const a = i + k, b = a + len / 2;
+        const tr = re[b] * cr - im[b] * ci, ti = re[b] * ci + im[b] * cr;
+        re[b] = re[a] - tr; im[b] = im[a] - ti; re[a] += tr; im[a] += ti;
+        const ncr = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = ncr;
+      }
+    }
+  }
+}
+const BINS = NFFT / 2 + 1;
+function espectro(a) {  // -> array de Float32Array(BINS), em dB
+  if (a.length < NFFT) return [];
+  const n = 1 + Math.floor((a.length - NFFT) / HOP), out = [];
+  const re = new Float64Array(NFFT), im = new Float64Array(NFFT);
+  for (let f = 0; f < n; f++) {
+    const o = f * HOP;
+    for (let i = 0; i < NFFT; i++) { re[i] = a[o + i] * JANELA[i]; im[i] = 0; }
+    fftMag(re, im);
+    const s = new Float32Array(BINS);
+    for (let k = 0; k < BINS; k++) s[k] = 20 * Math.log10(Math.hypot(re[k], im[k]) + 1e-6);
+    out.push(s);
+  }
+  return out;
+}
+function percentil(ordenado, q) {  // igual ao numpy (interpolação linear)
+  const pos = q / 100 * (ordenado.length - 1), i = Math.floor(pos), f = pos - i;
+  return i + 1 < ordenado.length ? ordenado[i] + (ordenado[i + 1] - ordenado[i]) * f : ordenado[i];
+}
+const mediana = (v) => percentil(Float64Array.from(v).sort(), 50);
+function frequenciaDoBipe(audio) {
+  const notas = [];
+  for (let i = 0; i < audio.length; i += SR * 60) {
+    const S = espectro(audio.subarray(i, i + SR * 60));
+    if (S.length < 50) continue;
+    const nota = new Float64Array(BINS), col = new Float64Array(S.length);
+    for (let k = 0; k < BINS; k++) { for (let f = 0; f < S.length; f++) col[f] = S[f][k]; col.sort(); nota[k] = percentil(col, 99.7) - percentil(col, 50); }
+    notas.push(nota);
+  }
+  if (!notas.length) return 0;
+  let melhor = -1, kmax = 0;
+  for (let k = 0; k < BINS; k++) {
+    const hz = k * SR / NFFT; if (hz < 1000 || hz > 7000) continue;
+    const v = notas.reduce((a, n) => a + n[k], 0) / notas.length;
+    if (melhor === -1 || v > melhor) { melhor = v; kmax = k; }
+  }
+  return kmax * SR / NFFT;
+}
+class DetectorBipe {
+  constructor(freq, limiar) { const k = Math.round(freq / (SR / NFFT)); this.k0 = Math.max(0, k - 2); this.k1 = k + 3; this.limiar = limiar; this.hist = []; this.ini = null; this.ult = -99; this.j = 0; }
+  processar(S, t0) {
+    const achados = []; if (!S.length) return achados;
+    const e = S.map(s => { let m = -Infinity; for (let k = this.k0; k < Math.min(this.k1, BINS); k++) m = Math.max(m, s[k]); return m - mediana(s); });
+    this.hist.push(...e); if (this.hist.length > 1500) this.hist = this.hist.slice(-1500);
+    const base = mediana(this.hist);
+    e.forEach((v, i) => {
+      const j = this.j + i;
+      if (v > base + this.limiar) { if (this.ini === null) this.ini = [j, t0 + i * HOP / SR]; this.ult = j; }
+      else if (this.ini !== null && j - this.ult > 3) { const dur = (this.ult - this.ini[0] + 1) * HOP / SR; if (dur >= 0.03 && dur <= 0.5) achados.push(this.ini[1]); this.ini = null; }
+    });
+    this.j += e.length;
+    return achados;
+  }
+}
+function bipesDoAudio(audio, cfg) {
+  if (!audio || audio.length < SR) return { bipes: [], freq: 0 };
+  const freq = cfg.bipe_freq_hz || frequenciaDoBipe(audio);
+  const det = new DetectorBipe(freq, cfg.bipe_limiar_db), bloco = SR * 30; let bipes = [];
+  for (let i = 0; i < audio.length; i += bloco) {
+    let S = espectro(audio.subarray(i, i + bloco + NFFT - HOP));
+    if (i + bloco < audio.length) S = S.slice(0, bloco / HOP);
+    bipes = bipes.concat(det.processar(S, i / SR));
+  }
+  return { bipes, freq };
+}
+async function lerAudio(bytes) {  // mono, 16 kHz (como o ffmpeg -ac 1 -ar 16000)
+  try {
+    // contexto "offline": decodifica e já converte para 16 kHz sem precisar de alto-falante (celular, emulador)
+    const buf = await new OfflineAudioContext(1, SR, SR).decodeAudioData(bytes);
+    const mono = new Float32Array(buf.length);
+    for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) mono[i] += d[i] / buf.numberOfChannels; }
+    return mono;
+  } catch (e) { return null; }
+}
+
+// ======================================================================
+// Ciclo do item: prateleira -> leitor -> caixa (porta da classe Ciclo)
+// ======================================================================
+class Ciclo {
+  constructor(cfg, bipes) { this.cfg = cfg; this.bipes = bipes; this.k = cfg.quadros_para_confirmar; this.cont = new Map(); this.disparou = new Map(); this.n_ciclos = 0; this.n_ok = 0; this.n_incompletos = 0; this.escala = null; this.reset(); }
+  reset() { this.estado = "livre"; this.t_ini = null; this.passou_leitor = false; this.trilha = []; this.ativa = null; }
+  _novos(zonasPorMao) {
+    const novos = new Map(), maos = new Set(zonasPorMao.keys());
+    for (const ch of this.cont.keys()) maos.add(Number(ch.split("|")[0]));
+    for (const m of [...maos].sort((a, b) => a - b)) {
+      const zs = zonasPorMao.get(m) || new Set();
+      for (const z of ZONAS) {
+        const ch = m + "|" + z; let h = this.cont.get(ch); if (!h) { h = []; this.cont.set(ch, h); }
+        h.push(zs.has(z)); if (h.length > this.k[z] + 1) h.shift();
+        const n = h.length;
+        if (n >= 2 && !h[n - 1] && !h[n - 2]) this.disparou.set(ch, false);
+        if (h.filter(Boolean).length >= this.k[z] && h[n - 1] && !this.disparou.get(ch)) {
+          this.disparou.set(ch, true); if (!novos.has(m)) novos.set(m, new Set()); novos.get(m).add(z);
+        }
+      }
+    }
+    return novos;
+  }
+  _iniciar(t, mao, ponto) { if (this.estado === "carregando") this.n_incompletos++; this.reset(); this.estado = "carregando"; this.t_ini = t; this.ativa = mao; this.trilha = ponto ? [[t, ponto]] : []; }
+  atualizar(t, zonasMao, pontos) {
+    const erros = [];
+    if (this.estado === "carregando" && this.trilha.length && pontos.size) {
+      const ult = this.trilha[this.trilha.length - 1][1]; let mp = null, best = Infinity;
+      for (const [m, p] of pontos) { const d = (p[0] - ult[0]) ** 2 + (p[1] - ult[1]) ** 2; if (d < best) { best = d; mp = m; } }
+      if (this.escala === null || Math.sqrt(best) <= this.escala * 0.18) this.ativa = mp;
+    }
+    const novos = this._novos(zonasMao);
+    if (this.estado === "carregando") {
+      const p = pontos.get(this.ativa); if (p) this.trilha.push([t, p]);
+      if (t - this.t_ini > this.cfg.tempo_max_ciclo_seg) { this.n_incompletos++; this.reset(); }
+    }
+    for (const [m, zs] of novos) if (zs.has("prateleira")) { this._iniciar(t, m, pontos.get(m)); break; }
+    if (this.estado === "livre") {
+      for (const [m, zs] of novos) if (zs.has("leitor")) { this._iniciar(t, m, pontos.get(m)); this.passou_leitor = true; break; }
+      return erros;
+    }
+    const zs = novos.get(this.ativa) || new Set();
+    if (zs.has("leitor")) this.passou_leitor = true;
+    const destino = zs.has("caixa_posto") ? "caixa_posto" : (zs.has("outras_caixas") ? "outras_caixas" : null);
+    if (destino) {
+      const v = this.cfg.verificar, info = { t_ini: this.t_ini, t, trilha: this.trilha.slice() };
+      if (destino === "outras_caixas" && v.caixa_errada) erros.push({ ...info, tipo: "caixa_errada" });
+      if (!this.passou_leitor && v.sem_leitor) erros.push({ ...info, tipo: "sem_leitor" });
+      if (this.passou_leitor && this.bipes) {
+        const f = this.cfg.bipe_folga_seg, n = this.bipes.filter(b => this.t_ini - f <= b && b <= t + f).length;
+        info.bipes = n;
+        if (n === 0 && v.sem_bipe) erros.push({ ...info, tipo: "sem_bipe" });
+        else if (n >= 2 && v.bipe_duplo) erros.push({ ...info, tipo: "bipe_duplo" });
+      }
+      this.n_ciclos++; if (!erros.length) this.n_ok++;
+      this.reset();
+    }
+    return erros;
+  }
+}
+
+// ======================================================================
+// IA de pose (YOLO11n-pose, a mesma do programa) rodando no navegador
+// ======================================================================
+let sessao = null;
+async function carregarIA(aviso) {
+  if (sessao) return sessao;
+  ort.env.wasm.numThreads = 1;
+  ort.env.wasm.wasmPaths = { mjs: new URL("ort/ort-wasm-simd-threaded.mjs", location.href).href, wasm: new URL("ort/ort-wasm-simd-threaded.wasm", location.href).href };
+  aviso("Baixando a IA (11 MB)…");
+  // a IA vai publicada como texto (base64): é o formato de arquivo que a página pode receber
+  const r = await fetch("yolo11n-pose.onnx.txt"); if (!r.ok) throw new Error("não consegui baixar a IA (" + r.status + ")");
+  const b64 = (await r.text()).trim(), bin = atob(b64), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  aviso("Preparando a IA…");
+  sessao = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"], graphOptimizationLevel: "all" });
+  return sessao;
+}
+const entrada = document.createElement("canvas"); entrada.width = entrada.height = 640;
+const ectx = entrada.getContext("2d", { willReadFrequently: true });
+async function detectar(fonte, w, h) {
+  const S = 640, r = Math.min(S / h, S / w), nw = Math.round(w * r), nh = Math.round(h * r);
+  const top = Math.round((S - nh) / 2 - 0.1), left = Math.round((S - nw) / 2 - 0.1);
+  ectx.fillStyle = "rgb(114,114,114)"; ectx.fillRect(0, 0, S, S); ectx.drawImage(fonte, left, top, nw, nh);
+  const px = ectx.getImageData(0, 0, S, S).data, n = S * S, t = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) { t[i] = px[i * 4] / 255; t[n + i] = px[i * 4 + 1] / 255; t[2 * n + i] = px[i * 4 + 2] / 255; }
+  const saida = await sessao.run({ [sessao.inputNames[0]]: new ort.Tensor("float32", t, [1, 3, S, S]) });
+  const o = saida[sessao.outputNames[0]].data, A = 8400, cand = [];
+  for (let a = 0; a < A; a++) {
+    const c = o[4 * A + a]; if (c < CFG.confianca_pessoa) continue;
+    const cx = o[a], cy = o[A + a], bw = o[2 * A + a], bh = o[3 * A + a];
+    cand.push({ c, a, box: [cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2] });
+  }
+  cand.sort((p, q) => q.c - p.c);
+  const iou = (p, q) => { const x1 = Math.max(p[0], q[0]), y1 = Math.max(p[1], q[1]), x2 = Math.min(p[2], q[2]), y2 = Math.min(p[3], q[3]); const i = Math.max(0, x2 - x1) * Math.max(0, y2 - y1); return i / ((p[2] - p[0]) * (p[3] - p[1]) + (q[2] - q[0]) * (q[3] - q[1]) - i + 1e-9); };
+  const ficou = []; for (const d of cand) { if (ficou.every(k => iou(k.box, d.box) <= 0.7)) ficou.push(d); if (ficou.length >= 300) break; }
+  const vx = (x) => (x - left) / r, vy = (y) => (y - top) / r;
+  return ficou.map(d => {
+    const kxy = [], kcf = [];
+    for (let k = 0; k < 17; k++) { kxy.push([vx(o[(5 + 3 * k) * A + d.a]), vy(o[(6 + 3 * k) * A + d.a])]); kcf.push(o[(7 + 3 * k) * A + d.a]); }
+    return { conf: d.c, caixa: [vx(d.box[0]), vy(d.box[1]), vx(d.box[2]), vy(d.box[3])], kxy, kcf };
+  });
+}
+
+// ======================================================================
+// Analisador de um quadro (porta da classe Analisador) + desenho
+// ======================================================================
+class Analisador {
+  constructor(cfg, areasDados, bipes) { this.cfg = cfg; this.dados = areasDados; this.ciclo = new Ciclo(cfg, bipes); this.areas = null; this.avisoTxt = null; this.avisoAte = -1e18; }
+  _operador(pessoas) {
+    const alvo = [(this.areas.centro("leitor")[0] + this.areas.centro("caixa_posto")[0]) / 2, (this.areas.centro("leitor")[1] + this.areas.centro("caixa_posto")[1]) / 2];
+    let melhor = null, md = Infinity;
+    for (const p of pessoas) {
+      if (p.conf < this.cfg.confianca_pessoa) continue;
+      const cx = (p.caixa[0] + p.caixa[2]) / 2, cy = (p.caixa[1] + p.caixa[3]) / 2;
+      if (this.areas.operador && !dentro(this.areas.operador, cx, cy)) continue;
+      const d = (cx - alvo[0]) ** 2 + (cy - alvo[1]) ** 2; if (d < md) { md = d; melhor = p; }
+    }
+    return melhor;
+  }
+  _maos(op) {
+    const maos = []; if (!op) return maos;
+    for (const [punho, cot] of [[9, 7], [10, 8]]) {
+      if (op.kcf[punho] < this.cfg.confianca_punho) continue;
+      let p = op.kxy[punho].slice();
+      if (op.kcf[cot] >= this.cfg.confianca_punho) p = [p[0] + this.cfg.estender_mao * (p[0] - op.kxy[cot][0]), p[1] + this.cfg.estender_mao * (p[1] - op.kxy[cot][1])];
+      maos.push([punho, p]);
+    }
+    return maos;
+  }
+  async processar(fonte, w, h, t) {
+    if (!this.areas || this.tam !== w + "x" + h) { this.areas = new Areas(this.dados, w, h); this.tam = w + "x" + h; }
+    const op = this._operador(await detectar(fonte, w, h));
+    const maos = this._maos(op), zonas = new Map(), pontos = new Map();
+    for (const [i, p] of maos) { zonas.set(i, this.areas.onde(p)); pontos.set(i, p); }
+    const trilha = this.ciclo.trilha.slice();
+    this.ciclo.escala = Math.hypot(w, h);
+    const erros = this.ciclo.atualizar(t, zonas, pontos);
+    if (erros.length) { this.avisoTxt = erros.map(e => AVISO[e.tipo]).join(" + "); this.avisoAte = t + 2.5; }
+    return { op, maos: maos.map(m => m[1]), erros, trilhaErro: erros.length ? trilha : null };
+  }
+}
+function desenharAreas(ctx, areas, alfa) {
+  ctx.save();
+  for (const z of ZONAS) for (const q of areas.zonas[z]) {
+    ctx.beginPath(); q.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath();
+    ctx.globalAlpha = alfa; ctx.fillStyle = CORES[z]; ctx.fill(); ctx.globalAlpha = 1; ctx.lineWidth = 3; ctx.strokeStyle = CORES[z]; ctx.stroke();
+  }
+  if (areas.operador) { ctx.beginPath(); areas.operador.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.setLineDash([10, 8]); ctx.lineWidth = 2; ctx.strokeStyle = CORES.operador; ctx.stroke(); ctx.setLineDash([]); }
+  ctx.restore();
+}
+function caixaTexto(ctx, txt, x, y, fundo, px) {
+  ctx.font = `600 ${px}px "IBM Plex Sans", "Segoe UI", sans-serif`; const w = ctx.measureText(txt).width;
+  ctx.fillStyle = fundo; ctx.fillRect(x, y, w + 18, px + 14); ctx.fillStyle = "#fff"; ctx.textBaseline = "middle"; ctx.fillText(txt, x + 9, y + (px + 14) / 2 + 1);
+  return px + 20;
+}
+function desenharQuadro(ctx, fonte, w, h, an, r, rotulo, t) {
+  ctx.drawImage(fonte, 0, 0, w, h);
+  desenharAreas(ctx, an.areas, 0.2);
+  const esp = Math.max(2, Math.round(w / 640));
+  if (r.op) {
+    const k = r.op.kxy, c = r.op.kcf; ctx.strokeStyle = "rgb(240,240,240)"; ctx.lineWidth = esp;
+    for (const [a, b] of [[5, 7], [7, 9], [6, 8], [8, 10], [5, 6]]) if (c[a] > 0.3 && c[b] > 0.3) { ctx.beginPath(); ctx.moveTo(...k[a]); ctx.lineTo(...k[b]); ctx.stroke(); }
+  }
+  const ci = an.ciclo, pts = r.trilhaErro || (ci.estado === "carregando" ? ci.trilha : []);
+  ctx.fillStyle = r.trilhaErro ? "rgb(230,40,40)" : (ci.passou_leitor ? "rgb(0,200,230)" : "rgb(255,255,255)");
+  for (const [, p] of pts.slice(-80)) { ctx.beginPath(); ctx.arc(p[0], p[1], esp + 1, 0, 7); ctx.fill(); }
+  ctx.strokeStyle = "rgb(255,220,0)"; ctx.lineWidth = esp;
+  for (const m of r.maos) { ctx.beginPath(); ctx.arc(m[0], m[1], esp * 4, 0, 7); ctx.stroke(); }
+  const px = Math.max(16, Math.round(w / 64));
+  let st = "aguardando";
+  if (ci.estado === "carregando") st = "pegou > " + (ci.passou_leitor ? "passou no leitor > " : "NÃO passou no leitor > ") + "...";
+  const y = 8 + caixaTexto(ctx, st, 8, 8, "rgba(30,30,30,.92)", px);
+  if (an.avisoTxt && t <= an.avisoAte) caixaTexto(ctx, an.avisoTxt, 8, y, "rgb(220,40,40)", Math.round(px * 1.1));
+  caixaTexto(ctx, rotulo, 8, h - px - 22, "rgba(30,30,30,.92)", px);
+}
+
+// ======================================================================
+// Estado da página
+// ======================================================================
+const tela = $("tela"), tctx = tela.getContext("2d"), video = $("video");
+const fonteDemo = video.canPlayType('video/mp4; codecs="avc1.640028"') ? "demo.mp4" : "demo.webm";
+// o vídeo fica inteiro na memória (blob:): assim dá para pular quadro a quadro em qualquer servidor
+let demoCache = null;
+async function fonteDaDemo() {
+  if (!demoCache) {
+    const r = await fetch(fonteDemo); if (!r.ok) throw new Error("não consegui baixar o vídeo de demonstração (" + r.status + ")");
+    const bytes = await r.arrayBuffer();
+    demoCache = { nome: "demo_esteira_cigarros.mp4", url: URL.createObjectURL(new Blob([bytes], { type: fonteDemo.endsWith(".mp4") ? "video/mp4" : "video/webm" })), demo: true, bytes };
+  }
+  return demoCache;
+}
+let fonte = { nome: "demo_esteira_cigarros.mp4", url: "", demo: true, bytes: null };
+let areasAtuais = AREAS_DEMO;
+let rodando = false, parar = false, resultado = null;
+
+function atualizarKpis(itens, erros, ok) {
+  $("k-itens").textContent = itens; $("k-erros").textContent = erros;
+  $("k-taxa").textContent = itens ? (ok / itens * 100).toFixed(1).replace(".", ",") + "%" : "—";
+}
+function status(html) { $("status").innerHTML = html; }
+
+async function abrirVideo(url) {
+  video.src = url; video.load();
+  await new Promise((ok, falha) => { video.onloadeddata = ok; video.onerror = () => falha(new Error("o navegador não conseguiu abrir este vídeo")); });
+  tela.width = video.videoWidth; tela.height = video.videoHeight;
+  $("editor").width = video.videoWidth; $("editor").height = video.videoHeight;
+  $("ar-tempo").max = Math.max(1, Math.floor(video.duration));
+}
+async function irPara(t) {
+  await new Promise(ok => { const f = () => { video.removeEventListener("seeked", f); ok(); }; video.addEventListener("seeked", f); video.currentTime = t; });
+}
+async function mostrarCapa() {
+  await irPara(Math.min(5, video.duration / 2));
+  tctx.drawImage(video, 0, 0, tela.width, tela.height);
+  desenharAreas(tctx, new Areas(areasAtuais, tela.width, tela.height), 0.2);
+  desenharEditor();
+}
+
+// ---- lista de erros ----
+function cartaoErro(reg) {
+  $("lista-vazia")?.remove();
+  const d = document.createElement("div"); d.className = "erro"; d.style.setProperty("--cor", corTipo(reg.tipo));
+  d.innerHTML = `<img alt="Foto do momento do erro"><div><div class="tipo"></div><div class="meta"></div><div class="acoes"><button type="button" data-a="clipe">Ver recorte</button><button type="button" data-a="original">Ver no vídeo original</button></div></div>`;
+  d.querySelector("img").src = reg.foto;
+  d.querySelector(".tipo").textContent = `${reg.n}. ${TIPOS[reg.tipo]}`;
+  d.querySelector(".meta").textContent = `${reg.t_video} no vídeo` + (reg.bipes != null ? ` · ${reg.bipes} bipe(s)` : "");
+  d.querySelector('[data-a="clipe"]').onclick = (ev) => tocarClipe(d, reg, ev.currentTarget);
+  d.querySelector('[data-a="original"]').onclick = () => tocarOriginal(reg);
+  $("lista").prepend(d);
+}
+function tocarClipe(card, reg, bt) {
+  let box = card.querySelector(".clipe");
+  if (box) { clearInterval(box._timer); box.remove(); bt.textContent = "Ver recorte"; return; }
+  if (!reg.quadros || !reg.quadros.length) { bt.textContent = "Recorte ainda gravando…"; setTimeout(() => bt.textContent = "Ver recorte", 1500); return; }
+  box = document.createElement("div"); box.className = "clipe"; const img = document.createElement("img"); img.alt = "Recorte do erro com as marcações"; box.append(img); card.append(box);
+  bt.textContent = "Fechar recorte"; let i = 0;
+  const passo = () => { img.src = reg.quadros[i % reg.quadros.length]; i++; };
+  passo(); box._timer = setInterval(passo, 1000 / CFG.analisar_por_segundo);
+}
+async function tocarOriginal(reg) {
+  if (rodando) { status("<b>Aguarde</b> a conferência terminar para assistir ao vídeo original."); return; }
+  const v = document.createElement("video"); v.src = video.src; v.controls = true; v.playsInline = true; v.style.width = "100%";
+  const box = document.createElement("div"); box.className = "aviso"; box.append(v);
+  const fechar = document.createElement("button"); fechar.className = "bt"; fechar.textContent = "Fechar"; fechar.onclick = () => { v.pause(); box.remove(); };
+  box.append(fechar); $("lista").prepend(box);
+  v.currentTime = reg.ini; v.ontimeupdate = () => { if (v.currentTime >= reg.fim) v.pause(); };
+  try { await v.play(); } catch (e) {}
+}
+
+// ---- conferência de um vídeo (como a tela "Vídeos gravados") ----
+async function conferir() {
+  const falta = Areas.faltando(areasAtuais);
+  if (falta.length) { status(`<b>Falta marcar:</b> ${falta.join(", ")}. Abra a aba Áreas do posto.`); selecionarAba("areas"); return; }
+  rodando = true; parar = false;
+  $("bt-conferir").disabled = true; $("bt-parar").disabled = false; $("lb-arquivo").hidden = $("lb-gravar").hidden = true; $("bt-demo").hidden = true;
+  let tela_acesa = null; try { tela_acesa = await navigator.wakeLock?.request("screen"); } catch (e) {}  // celular: não apagar a tela no meio
+  $("lista").innerHTML = '<div class="vazio" id="lista-vazia">Nenhum erro até agora.</div>'; atualizarKpis(0, 0, 0);
+  const cfg = JSON.parse(JSON.stringify(CFG));
+  try {
+    await carregarIA((m) => status(`<b>${m}</b>`));
+    let bipes = null;
+    if (cfg.usar_som_do_bipe && (cfg.verificar.sem_bipe || cfg.verificar.bipe_duplo)) {
+      status("<b>Ouvindo o som do vídeo…</b>");
+      const bytes = fonte.bytes.slice(0);  // decodeAudioData consome a cópia
+      const r = bipesDoAudio(await lerAudio(bytes), cfg);
+      if (r.bipes.length >= 3) { bipes = r.bipes; resultadoSom = `bipe em ~${Math.round(r.freq)} Hz, ${r.bipes.length} bipes ouvidos`; }
+      else resultadoSom = "quase nenhum bipe ouvido: verificação de bipe desligada neste vídeo";
+    } else resultadoSom = "som do bipe desligado nas configurações";
+    const an = new Analisador(cfg, areasAtuais, bipes);
+    const fps = 30, passo = Math.max(1, Math.round(fps / cfg.analisar_por_segundo)), w = video.videoWidth, h = video.videoHeight;
+    const total = Math.floor(video.duration * fps), regs = [], buf = [], pend = [];
+    const miniatura = document.createElement("canvas"), mctx = miniatura.getContext("2d");
+    miniatura.width = 640; miniatura.height = Math.round(640 * h / w);
+    const t0 = performance.now();
+    for (let idx = 0; idx < total && !parar; idx += passo) {
+      const t = idx / fps;
+      await irPara(t + 0.5 / fps);
+      const r = await an.processar(video, w, h, t);
+      desenharQuadro(tctx, video, w, h, an, r, `${fonte.demo ? "Posto 03 (demonstração)" : "Posto 01"} | ${fonte.nome} | ${hms(t)}`, t);
+      mctx.drawImage(tela, 0, 0, miniatura.width, miniatura.height);
+      buf.push([t, miniatura.toDataURL("image/jpeg", 0.72)]);
+      while (buf.length && t - buf[0][0] > cfg.recorte_max_seg + 2) buf.shift();
+      for (const e of r.erros) {
+        let ini = Math.max(0, e.t_ini - cfg.segundos_antes); const fim = t + cfg.segundos_depois; ini = Math.max(ini, fim - cfg.recorte_max_seg);
+        const reg = { n: regs.length + 1, tipo: e.tipo, t_video: hms(t), t, ini, fim, bipes: e.bipes ?? null, foto: tela.toDataURL("image/jpeg", 0.8), quadros: null };
+        regs.push(reg); pend.push(reg); cartaoErro(reg);
+      }
+      for (const reg of pend.filter(p => t >= p.fim)) { reg.quadros = buf.filter(([tt]) => reg.ini <= tt && tt <= reg.fim).map(([, j]) => j); pend.splice(pend.indexOf(reg), 1); }
+      atualizarKpis(an.ciclo.n_ciclos, regs.length, an.ciclo.n_ok);
+      const feito = (idx + passo) / total, gasto = (performance.now() - t0) / 1000, falta = gasto / Math.max(feito, 1e-3) - gasto;
+      $("progresso").style.width = Math.min(100, feito * 100) + "%";
+      status(`<b>Conferindo ${hms(t)} de ${hms(video.duration)}</b> · ${an.ciclo.n_ciclos} itens · faltam ~${Math.ceil(falta)} s`);
+      await new Promise(requestAnimationFrame);
+    }
+    for (const reg of pend) reg.quadros = buf.filter(([tt]) => reg.ini <= tt && tt <= reg.fim).map(([, j]) => j);
+    resultado = { nome: fonte.nome, demo: fonte.demo, itens: an.ciclo.n_ciclos, ok: an.ciclo.n_ok, erros: regs, som: resultadoSom, duracao: video.duration, interrompido: parar };
+    window.__resultado = { itens: resultado.itens, ok: resultado.ok, erros: regs.map(r => r.tipo), som: resultadoSom };
+    status(`<b>${parar ? "Parado" : "Concluído"}.</b> ${resultado.itens} itens conferidos, ${regs.length} com erro. Som: ${resultadoSom}.`);
+    montarRelatorio();
+  } catch (e) {
+    status(`<b>Não consegui conferir:</b> ${e.message || e}. Recarregue a página e tente de novo.`);
+    window.__resultado = { falha: String(e && e.stack || e) };
+  } finally {
+    rodando = false; $("bt-conferir").disabled = false; $("bt-parar").disabled = true; $("lb-arquivo").hidden = $("lb-gravar").hidden = false; $("bt-demo").hidden = fonte.demo;
+    try { await tela_acesa?.release(); } catch (e) {}
+    $("bt-conferir").textContent = fonte.demo ? "▶ Conferir a demonstração de novo" : "▶ Conferir este vídeo de novo";
+  }
+}
+let resultadoSom = "";
+
+// ---- relatório ----
+function montarRelatorio() {
+  const r = resultado; if (!r) return;
+  const taxa = r.itens ? (r.ok / r.itens * 100).toFixed(1).replace(".", ",") : "—";
+  $("rel-resumo").textContent = `${r.nome}${r.demo ? " (demonstração)" : ""} · ${hms(r.duracao)} de vídeo · ${r.itens} itens conferidos · ${r.erros.length} com erro · ${taxa}% sem erro${r.interrompido ? " · conferência parada antes do fim" : ""}. Som: ${r.som}.`;
+  const cont = {}; for (const e of r.erros) cont[e.tipo] = (cont[e.tipo] || 0) + 1;
+  const max = Math.max(1, ...Object.values(cont));
+  $("rel-barras").innerHTML = "";
+  for (const t of Object.keys(TIPOS)) {
+    const linha = document.createElement("div"); linha.style.setProperty("--cor", corTipo(t));
+    linha.innerHTML = `<span></span><i></i><b></b>`; linha.querySelector("span").textContent = TIPOS_CURTO[t];
+    linha.querySelector("i").style.width = ((cont[t] || 0) / max * 100) + "%"; linha.querySelector("b").textContent = cont[t] || 0;
+    $("rel-barras").append(linha);
+  }
+  $("rel-linhas").innerHTML = "";
+  for (const e of r.erros) {
+    const tr = document.createElement("tr");
+    for (const [v, cls] of [[e.n, "num"], [e.t_video, "num"], [TIPOS[e.tipo], ""], [e.bipes ?? "—", "num"]]) { const td = document.createElement("td"); td.textContent = v; if (cls) td.className = cls; tr.append(td); }
+    $("rel-linhas").append(tr);
+  }
+  if (!r.erros.length) $("rel-linhas").innerHTML = '<tr><td colspan="4">Nenhum erro encontrado.</td></tr>';
+}
+function csv() {
+  const r = resultado; if (!r) return null;
+  const linhas = [["nº", "posto", "vídeo", "momento no vídeo", "erro", "bipes ouvidos"].join(";")];
+  for (const e of r.erros) linhas.push([e.n, r.demo ? "Posto 03 (demonstração)" : "Posto 01", r.nome, e.t_video, TIPOS[e.tipo], e.bipes ?? ""].join(";"));
+  return "﻿" + linhas.join("\r\n");
+}
+
+// ---- editor de áreas ----
+const TIPOS_AREA = [["prateleiras", "Prateleira", "prateleira", true], ["leitor", "Leitor", "leitor", false], ["caixa_posto", "Caixa do posto", "caixa_posto", false], ["outras_caixas", "Outras caixas", "outras_caixas", true], ["area_operador", "Área do operador", "operador", false]];
+let tipoAtual = "prateleiras", formaNova = false;
+function montarTiposArea() {
+  $("tipos-area").innerHTML = "";
+  TIPOS_AREA.forEach(([k, nome, cor], i) => {
+    const b = document.createElement("button"); b.type = "button"; b.style.setProperty("--cz", CORES[cor]);
+    b.innerHTML = `<span class="tecla">${i + 1}</span>`; b.append(nome); b.setAttribute("aria-pressed", k === tipoAtual);
+    b.onclick = () => { tipoAtual = k; formaNova = false; montarTiposArea(); desenharEditor(); }; $("tipos-area").append(b);
+  });
+}
+function multi(k) { return TIPOS_AREA.find(t => t[0] === k)[3]; }
+function desenharEditor() {
+  const c = $("editor"), ctx = c.getContext("2d");
+  try { ctx.drawImage(video, 0, 0, c.width, c.height); } catch (e) {}
+  desenharAreas(ctx, new Areas(areasAtuais, c.width, c.height), 0.25);
+  // pontos da forma em edição (ainda com menos de 3 cantos)
+  const atual = formaAtual();
+  if (atual) { ctx.fillStyle = "#fff"; for (const [x, y] of atual) { ctx.beginPath(); ctx.arc(x * c.width, y * c.height, 6, 0, 7); ctx.fill(); } }
+  const falta = Areas.faltando(areasAtuais);
+  $("ar-falta").innerHTML = falta.length ? `<b>Falta marcar:</b> ${falta.join(", ")}.` : "<b>Pronto.</b> As áreas obrigatórias estão marcadas. Volte para Conferir vídeo.";
+  $("ar-yaml").value = paraYaml(areasAtuais);
+}
+function formaAtual() { const v = areasAtuais[tipoAtual]; if (!v || !v.length) return null; return multi(tipoAtual) ? v[v.length - 1] : v; }
+function paraYaml(a) {  // listas no formato [x, y] também são YAML válido
+  let s = "# Áreas do posto (feitas no ConfereVídeo Web)\n";
+  for (const [k] of TIPOS_AREA) s += `${k}: ${JSON.stringify(a[k] || [])}\n`;
+  return s;
+}
+function salvarAreas() { if (!fonte.demo) guardar("conferevideo.areas", areasAtuais); }
+$("editor").addEventListener("click", (ev) => {
+  const c = ev.currentTarget, r = c.getBoundingClientRect();
+  const p = [+(((ev.clientX - r.left) / r.width).toFixed(4)), +(((ev.clientY - r.top) / r.height).toFixed(4))];
+  areasAtuais = JSON.parse(JSON.stringify(areasAtuais));
+  if (multi(tipoAtual)) { const v = areasAtuais[tipoAtual] || (areasAtuais[tipoAtual] = []); if (formaNova || !v.length) { v.push([]); formaNova = false; } v[v.length - 1].push(p); }
+  else (areasAtuais[tipoAtual] || (areasAtuais[tipoAtual] = [])).push(p);
+  salvarAreas(); desenharEditor();
+});
+$("ar-nova").onclick = () => { formaNova = true; status("<b>Nova forma:</b> o próximo clique começa outra área do mesmo tipo."); };
+$("ar-desfazer").onclick = () => {
+  areasAtuais = JSON.parse(JSON.stringify(areasAtuais)); const v = areasAtuais[tipoAtual]; if (!v || !v.length) return;
+  if (multi(tipoAtual)) { v[v.length - 1].pop(); if (!v[v.length - 1].length) v.pop(); } else v.pop();
+  salvarAreas(); desenharEditor();
+};
+$("ar-limpar").onclick = () => { areasAtuais = { ...areasAtuais, [tipoAtual]: [] }; salvarAreas(); desenharEditor(); };
+$("ar-demo").onclick = () => { areasAtuais = JSON.parse(JSON.stringify(AREAS_DEMO)); salvarAreas(); desenharEditor(); };
+$("ar-tempo").oninput = async (ev) => { $("ar-tempo-v").textContent = ev.target.value + " s"; if (!rodando) { await irPara(+ev.target.value); desenharEditor(); } };
+$("ar-copiar").onclick = async () => { try { await navigator.clipboard.writeText($("ar-yaml").value); $("ar-copiar").textContent = "Copiado"; } catch (e) { $("ar-yaml").select(); } };
+document.addEventListener("keydown", (ev) => { if (!$("sec-areas").hidden && /^[1-5]$/.test(ev.key) && ev.target.tagName !== "INPUT" && ev.target.tagName !== "TEXTAREA") { tipoAtual = TIPOS_AREA[+ev.key - 1][0]; montarTiposArea(); desenharEditor(); } });
+
+// ---- abas ----
+function selecionarAba(nome) {
+  for (const a of ["conferir", "areas", "relatorio", "config"]) { $("aba-" + a).setAttribute("aria-selected", a === nome); $("sec-" + a).hidden = a !== nome; }
+  if (nome === "areas" && !rodando) desenharEditor();
+}
+for (const a of ["conferir", "areas", "relatorio", "config"]) $("aba-" + a).onclick = () => selecionarAba(a);
+
+// ---- configurações ----
+for (const t of Object.keys(TIPOS)) $("v-" + t).onchange = (ev) => { CFG.verificar[t] = ev.target.checked; };
+$("c-som").onchange = (ev) => { CFG.usar_som_do_bipe = ev.target.checked; };
+for (const [id, chave, un] of [["c-limiar", "bipe_limiar_db", " dB"], ["c-antes", "segundos_antes", " s"], ["c-depois", "segundos_depois", " s"]])
+  $(id).oninput = (ev) => { CFG[chave] = +ev.target.value; $(id + "-v").textContent = ev.target.value + un; };
+
+// ---- botões ----
+$("bt-conferir").onclick = conferir;
+$("bt-parar").onclick = () => { parar = true; status("<b>Parando…</b>"); };
+const abrirArquivo = async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try {
+    const bytes = await f.arrayBuffer();
+    fonte = { nome: f.name, url: URL.createObjectURL(f), demo: false, bytes };
+    await abrirVideo(fonte.url);
+    areasAtuais = ler("conferevideo.areas") || { prateleiras: [], leitor: [], caixa_posto: [], outras_caixas: [], area_operador: [] };
+    $("posto").innerHTML = "<b>Seu vídeo</b>"; $("posto").append(f.name);
+    $("bt-conferir").textContent = "▶ Conferir este vídeo"; $("bt-demo").hidden = false;
+    await mostrarCapa();
+    const falta = Areas.faltando(areasAtuais);
+    if (falta.length) { status(`<b>Vídeo aberto.</b> Agora marque as áreas do posto (falta: ${falta.join(", ")}).`); selecionarAba("areas"); }
+    else status("<b>Vídeo aberto</b> com as áreas que você marcou antes. Confira se ainda batem com a imagem.");
+  } catch (e) {
+    status(`<b>Não consegui abrir o vídeo:</b> ${e.message}. Grave em H.264 (na GoPro, deixe "Alta eficiência" desligado) e tente de novo.`);
+  }
+  ev.target.value = "";
+};
+$("arquivo").onchange = abrirArquivo;
+$("gravar").onchange = abrirArquivo;
+$("bt-demo").onclick = async () => {
+  fonte = await fonteDaDemo(); areasAtuais = AREAS_DEMO;
+  $("posto").innerHTML = "<b>Emergent Cold · Guarulhos II</b>Esteira de separação · Posto 03 (demonstração)";
+  await abrirVideo(fonte.url); await mostrarCapa(); $("bt-conferir").textContent = "▶ Conferir a demonstração"; $("bt-demo").hidden = true;
+  status("<b>Pronto.</b> A demonstração mostra um posto de separação de cigarros com um erro de cada tipo.");
+};
+let downloads = null;
+$("rel-csv").onclick = async () => {
+  const txt = csv(); if (!txt) { $("rel-msg").textContent = "Confira um vídeo primeiro."; return; }
+  if (!downloads) { $("rel-msg").textContent = "Este navegador não permite baixar daqui. Use Copiar planilha."; return; }
+  try { await downloads.save({ filename: "conferevideo_erros.csv", data: new Blob([txt], { type: "text/csv" }) }); $("rel-msg").textContent = "Planilha salva."; }
+  catch (e) { $("rel-msg").textContent = "O download não foi feito. Use Copiar planilha."; }
+};
+$("rel-copiar").onclick = async () => {
+  const txt = csv(); if (!txt) { $("rel-msg").textContent = "Confira um vídeo primeiro."; return; }
+  try { await navigator.clipboard.writeText(txt.replace(/^﻿/, "")); $("rel-msg").textContent = "Copiado. Cole no Excel."; } catch (e) { $("rel-msg").textContent = "Não consegui copiar neste navegador."; }
+};
+
+// ---- início ----
+montarTiposArea();
+(async () => {
+  try { fonte = await fonteDaDemo(); await abrirVideo(fonte.url); await mostrarCapa(); }
+  catch (e) { status(`<b>Não consegui abrir o vídeo de demonstração:</b> ${e.message}.`); }
+})();
+(async () => { try { downloads = await window.claude?.use?.("downloads"); } catch (e) { downloads = null; } if (!downloads) $("rel-csv").hidden = true; })();
+</script>

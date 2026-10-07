@@ -1,0 +1,8 @@
+{
+  "appId": "com.emergentcold.conferevideo",
+  "appName": "ConfereVídeo",
+  "webDir": "www",
+  "android": {
+    "webContentsDebuggingEnabled": true
+  }
+}

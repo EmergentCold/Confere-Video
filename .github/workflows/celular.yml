@@ -1,0 +1,81 @@
+name: Aplicativo Android
+
+# Monta o ConfereVideo.apk (a versão web dentro de um aplicativo), instala num
+# emulador Android, confere a demonstração e só então publica o .apk em Releases.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "web/**"
+      - "celular/**"
+      - "demo/**"
+      - .github/workflows/celular.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: celular-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Montar o ConfereVideo.apk
+        working-directory: celular
+        run: |
+          npm ci
+          bash montar_www.sh
+          npx cap sync android
+          cd android
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../ConfereVideo.apk
+          ls -lh ../ConfereVideo.apk
+
+      - name: Ligar a aceleração do emulador (KVM)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Instalar no emulador e conferir a demonstração
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          ram-size: 4096M
+          disk-size: 6000M
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none -no-snapshot
+          disable-animations: true
+          script: npm install --no-save --prefix celular playwright-core@1 && NODE_PATH=celular/node_modules bash celular/teste/no_emulador.sh
+
+      - name: Guardar as telas do teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: telas-do-teste
+          path: celular/teste/*.png
+          if-no-files-found: ignore
+
+      - name: Publicar o aplicativo em Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="celular-$(echo "${{ github.ref_name }}" | sed 's/[^A-Za-z0-9._-]/-/g')"
+          gh release delete "$tag" --cleanup-tag --yes 2>/dev/null || echo "Sem versão anterior para trocar."
+          gh release create "$tag" celular/ConfereVideo.apk --target "${{ github.sha }}" --prerelease \
+            --title "ConfereVídeo 1.0.${{ github.run_number }} – aplicativo Android (${{ github.ref_name }})" \
+            --notes "Aplicativo do ConfereVídeo para Android 7 ou mais novo, montado a partir de ${{ github.ref_name }} (${{ github.sha }}). Baixe o ConfereVideo.apk no celular e toque para instalar (o Android pede para permitir a instalação de apps desta fonte). Antes de publicar, ele foi instalado num emulador Android e conferiu a demonstração com o mesmo resultado do programa instalado."

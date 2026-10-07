@@ -43,6 +43,18 @@ python marcar_areas.py video.mp4   # marca as áreas
 python diagnostico.py              # verifica o PC
 ```
 
+## Versão web e aplicativo Android
+
+- `web/index.html`: o ConfereVídeo no navegador (confere vídeos gravados, sem instalar nada). Usa a
+  mesma IA (`web/yolo11n-pose.onnx`, o `yolo11n-pose.pt` exportado para ONNX) e as mesmas regras do
+  `motor.py`, reescritas em JavaScript, e chega ao mesmo resultado na demonstração.
+- `celular/`: aplicativo Android (Capacitor) com a versão web dentro, mais o botão de gravar pela
+  câmera do celular. O workflow **Aplicativo Android** monta o `ConfereVideo.apk`, instala num
+  emulador, confere a demonstração e publica em [Releases](../../releases).
+
+Para montar o aplicativo no próprio PC (Node 22, JDK 21 e Android SDK):
+`cd celular && npm ci && npm run sync && cd android && ./gradlew assembleDebug`.
+
 ## Testes
 
 Os testes conferem as regras de erro, a detecção do bipe, os turnos, a limpeza automática e a
