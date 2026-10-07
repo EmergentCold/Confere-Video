@@ -1,0 +1,34 @@
+# Configuração do ConfereVídeo (também editável pela tela Configurações)
+empresa: Emergent Cold
+unidade: Guarulhos II
+nome_local: Esteira de separação - cigarros
+posto: Posto 01
+logo: ''
+modelo_pose: yolo11n-pose.pt
+tamanho_imagem: 640
+confianca_pessoa: 0.2
+confianca_punho: 0.3
+analisar_por_segundo: 8
+estender_mao: 0.35
+quadros_para_confirmar:
+  prateleira: 2
+  leitor: 1
+  caixa_posto: 2
+  outras_caixas: 2
+tempo_max_ciclo_seg: 20
+verificar:
+  sem_leitor: true
+  caixa_errada: true
+  sem_bipe: true
+  bipe_duplo: true
+usar_som_do_bipe: true
+microfone: ''
+bipe_freq_hz: 0
+bipe_limiar_db: 15
+bipe_folga_seg: 0.6
+segundos_antes: 3
+segundos_depois: 3
+recorte_max_seg: 25
+fps_gravacao_ao_vivo: 15
+pasta_resultados: resultados
+fonte_ao_vivo: '0'

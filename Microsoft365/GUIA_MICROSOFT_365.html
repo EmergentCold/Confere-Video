@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ConfereVídeo no Microsoft 365</title>
+<style>
+/* Guia técnico: coluna única de leitura, cabeçalho escuro de painel de operação, passos numerados */
+:root{--ink:#16202e;--muted:#5b6678;--line:#e3e7ee;--bg:#f4f6f9;--card:#fff;--brand:#0f4c81;--on-brand:#ffffff;--ok:#15803d;--bad:#b91c1c;--warn:#c2410c;--code:#0b1220;--codetx:#dbe6f5;--head-bg:#16202e;--head-fg:#ffffff;--head-sub:#c9d5e3;--head-mark:#9fb3cc;--chip-bg:#e8f0f8;--chip-fg:#0f4c81}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e6ebf2;--muted:#9aa6b8;--line:#2a3442;--bg:#0f141b;--card:#161d27;--brand:#5aa2e0;--on-brand:#0f141b;--ok:#4ade80;--bad:#f87171;--warn:#fb923c;--code:#0a0f16;--head-bg:#0a0f16;--chip-bg:#1d3550;--chip-fg:#cfe3f7;color-scheme:dark}}
+:root[data-theme="dark"]{--ink:#e6ebf2;--muted:#9aa6b8;--line:#2a3442;--bg:#0f141b;--card:#161d27;--brand:#5aa2e0;--on-brand:#0f141b;--ok:#4ade80;--bad:#f87171;--warn:#fb923c;--code:#0a0f16;--head-bg:#0a0f16;--chip-bg:#1d3550;--chip-fg:#cfe3f7;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+header{background:var(--head-bg);color:var(--head-fg)}
+header .w{padding-block:34px 30px}
+.w{max-width:960px;margin:0 auto;padding-inline:20px}
+.marca{font-size:12px;letter-spacing:.14em;color:var(--head-mark);text-transform:uppercase}
+h1{margin:6px 0 6px;font-size:30px;line-height:1.2;text-wrap:balance}
+header p{margin:0;color:var(--head-sub);max-width:720px}
+nav.indice{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:24px 0}
+nav.indice ol{margin:6px 0 0;padding-left:22px;columns:2;column-gap:28px}
+nav.indice a{color:var(--brand);text-decoration:none}
+h2{font-size:22px;margin:40px 0 10px;padding-top:10px;border-top:1px solid var(--line)}
+h2 .n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--brand);color:var(--on-brand);font-size:15px;margin-right:10px;vertical-align:2px}
+h2{text-wrap:balance}
+h3{font-size:17px;margin:22px 0 6px}
+ol.passos>li,ul>li{margin:6px 0}
+.caixa{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:8px;padding:12px 16px;margin:14px 0}
+.caixa.aviso{border-left-color:var(--warn)}
+.caixa.ok{border-left-color:var(--ok)}
+.caixa b:first-child{display:block;margin-bottom:2px}
+code{overflow-wrap:anywhere}
+code,kbd{font-family:Consolas,"Cascadia Mono",monospace;font-size:14px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+pre{position:relative;background:var(--code);color:var(--codetx);border-radius:8px;padding:14px 16px;overflow-x:auto;font:13.5px/1.5 Consolas,"Cascadia Mono",monospace;margin:10px 0}
+pre button{position:absolute;top:8px;right:8px;background:#2b3a50;color:#fff;border:0;border-radius:5px;padding:4px 10px;font:12px "Segoe UI",Arial;cursor:pointer}
+pre button:focus-visible,a:focus-visible{outline:2px solid #5aa2e0;outline-offset:2px}
+table{border-collapse:collapse;width:100%;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14.5px;margin:10px 0}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.rotulo{font-weight:600}
+.rolar{overflow-x:auto;margin:10px 0}.rolar table{margin:0;min-width:520px}
+figure{margin:16px 0}
+figure img{max-width:100%;border-radius:8px;border:1px solid var(--line);display:block}
+figcaption{color:var(--muted);font-size:13.5px;margin-top:6px}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.card h4{margin:0 0 4px;font-size:15px}
+.card p{margin:0;color:var(--muted);font-size:14.5px}
+.diag{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin:16px 0}
+.diag svg{width:100%;height:auto;display:block}
+.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:1px 9px;background:var(--chip-bg);color:var(--chip-fg);margin-left:6px;vertical-align:2px}
+footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){nav.indice ol{columns:1}h1{font-size:24px}th,td{padding:7px 8px}table{font-size:13.5px}}
+@media print{pre button{display:none}body{background:#fff}h2{break-after:avoid}.caixa,figure,table{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header><div class="w">
+<div class="marca">ConfereVídeo · conferência da separação por vídeo</div>
+<h1>Guia de implantação no Microsoft 365</h1>
+<p>Como ligar o ConfereVídeo ao SharePoint, ao Teams, ao Outlook, ao Power Automate e ao Power Apps da empresa, do zero, em cerca de 40 minutos.</p>
+</div></header>
+<main class="w">
+
+<nav class="indice" aria-label="Índice"><b>Neste guia</b>
+<ol>
+<li><a href="#visao">O que acontece depois de ligado</a></li>
+<li><a href="#antes">Antes de começar</a></li>
+<li><a href="#p1">Preencher o ConfereVídeo e gerar os fluxos</a></li>
+<li><a href="#p2">Importar os fluxos no Power Automate</a></li>
+<li><a href="#p3">Criar as listas no SharePoint</a></li>
+<li><a href="#p4">Ligar o fluxo que recebe os erros</a></li>
+<li><a href="#p5">Ligar a cobrança diária e o resumo semanal</a></li>
+<li><a href="#p6">Montar o app de tratativa (Power Apps)</a></li>
+<li><a href="#p7">Automação no PC da câmera</a></li>
+<li><a href="#p8">Teste completo</a></li>
+<li><a href="#prob">Quando algo não sai certo</a></li>
+<li><a href="#lgpd">Segurança e LGPD</a></li>
+<li><a href="#ref">Referência: colunas das listas</a></li>
+<li><a href="#alt">Alternativas (só alerta / montar à mão)</a></li>
+</ol></nav>
+
+<h2 id="visao"><span class="n">1</span>O que acontece depois de ligado</h2>
+<div class="diag" role="img" aria-label="Fluxo: câmera e PC do posto enviam para o Power Automate, que grava nas listas do SharePoint, avisa no Teams e manda e-mail; o Power Apps lê e grava a tratativa nas listas.">
+<svg viewBox="0 0 900 300" font-family="Segoe UI, Arial, sans-serif" font-size="14">
+<defs><marker id="s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6678"/></marker></defs>
+<g fill="none" stroke="#5b6678" stroke-width="2" marker-end="url(#s)">
+<path d="M190 150 H262"/><path d="M462 120 L560 62"/><path d="M462 150 H560"/><path d="M462 180 L560 238"/>
+<path d="M740 62 C820 62 830 150 790 196" stroke-dasharray="5 4"/>
+</g>
+<g>
+<rect x="20" y="100" width="170" height="100" rx="10" fill="#16202e"/>
+<text x="105" y="140" fill="#fff" text-anchor="middle" font-weight="700">Câmera + PC</text>
+<text x="105" y="162" fill="#c9d5e3" text-anchor="middle" font-size="13">ConfereVídeo</text>
+<text x="105" y="182" fill="#9fb3cc" text-anchor="middle" font-size="12">erro, turno, alerta</text>
+<rect x="265" y="100" width="197" height="100" rx="10" fill="#0f4c81"/>
+<text x="363" y="140" fill="#fff" text-anchor="middle" font-weight="700">Power Automate</text>
+<text x="363" y="162" fill="#dbe6f5" text-anchor="middle" font-size="13">fluxo "Receber eventos"</text>
+<text x="363" y="182" fill="#dbe6f5" text-anchor="middle" font-size="12">+ cobrança diária e semanal</text>
+<rect x="562" y="30" width="178" height="64" rx="10" fill="#e8f0f8" stroke="#0f4c81"/>
+<text x="651" y="56" fill="#16202e" text-anchor="middle" font-weight="700">SharePoint</text>
+<text x="651" y="76" fill="#5b6678" text-anchor="middle" font-size="12">listas de erros e turnos</text>
+<rect x="562" y="118" width="178" height="64" rx="10" fill="#efeaff" stroke="#7c3aed"/>
+<text x="651" y="144" fill="#16202e" text-anchor="middle" font-weight="700">Teams</text>
+<text x="651" y="164" fill="#5b6678" text-anchor="middle" font-size="12">alerta com foto e recorte</text>
+<rect x="562" y="206" width="178" height="64" rx="10" fill="#fff3e8" stroke="#c2410c"/>
+<text x="651" y="232" fill="#16202e" text-anchor="middle" font-weight="700">Outlook</text>
+<text x="651" y="252" fill="#5b6678" text-anchor="middle" font-size="12">resumo do turno + PDF</text>
+<rect x="760" y="196" width="125" height="74" rx="10" fill="#e9f7ee" stroke="#15803d"/>
+<text x="822" y="226" fill="#16202e" text-anchor="middle" font-weight="700">Power Apps</text>
+<text x="822" y="246" fill="#5b6678" text-anchor="middle" font-size="12">tratativa</text>
+</g></svg></div>
+
+<div class="grade">
+<div class="card"><h4>A cada erro</h4><p>Vira um item na lista do SharePoint, com foto, recorte em vídeo e status "Pendente". Chega um cartão no Teams com a foto e o botão "Ver recorte".</p></div>
+<div class="card"><h4>No fim de cada turno</h4><p>O programa fecha o relatório, gera o PDF e o gestor recebe por e-mail os indicadores do turno. O turno vira uma linha na lista de turnos.</p></div>
+<div class="card"><h4>Todo dia às 07:00</h4><p>Os supervisores recebem no Teams e por e-mail os erros que ainda não tiveram tratativa.</p></div>
+<div class="card"><h4>Toda segunda às 07:30</h4><p>O gestor recebe o resumo da semana: itens conferidos, erros por tipo, confirmados, falsos alarmes e pendentes.</p></div>
+<div class="card"><h4>Se a câmera parar</h4><p>Depois de 2 minutos sem imagem, chega um alerta no Teams e por e-mail. Quando ela volta, outro aviso. O programa tenta reconectar sozinho.</p></div>
+<div class="card"><h4>Tratativa no celular</h4><p>O supervisor abre o app, vê a foto, assiste ao recorte e marca "erro confirmado" ou "falso alarme", com a orientação dada e o operador.</p></div>
+</div>
+<figure><img src="img/teams.jpg" alt="Cartões do Teams: erro com foto, fim de turno, câmera parada, teste e cobrança diária" style="width:420px;max-width:100%"><figcaption>Como os cartões chegam no Teams (desenho do próprio cartão gerado pelo programa).</figcaption></figure>
+
+<h2 id="antes"><span class="n">2</span>Antes de começar</h2>
+<ul>
+<li><b>Conta do Microsoft 365 da empresa</b> com Teams, SharePoint, Outlook, Power Automate e Power Apps. Os planos comuns do Microsoft 365 já incluem tudo o que o ConfereVídeo usa: <b>só conectores padrão</b> (SharePoint, Teams e Outlook), sem licença Premium.</li>
+<li><b>Um site do SharePoint</b> onde você possa criar listas. O mais prático é o site da equipe do Teams de SST (toda equipe do Teams tem um).</li>
+<li><b>O PC da câmera com internet</b>, para o programa mandar os envios. Se a internet cair, nada se perde: os envios ficam na fila e saem quando ela voltar.</li>
+<li>Uns <b>40 minutos</b>. Se a TI controla o Power Platform da empresa, mostre este guia a ela: tudo fica dentro do Microsoft 365 da empresa.</li>
+<li><b>O PC verificado.</b> No fim da instalação o ConfereVídeo verifica o PC sozinho e abre o resultado (<code>diagnostico.txt</code>). Depois de ligar o envio, rode de novo (<code>VERIFICAR_PC.bat</code> ou <b>Configurações</b> &gt; <b>Verificar este PC</b>): ele testa se o PC alcança o Power Automate.</li>
+</ul>
+<div class="caixa"><b>Como achar o endereço do site</b>No Teams, abra a equipe &gt; canal &gt; aba <b>Arquivos</b> &gt; <b>Abrir no SharePoint</b>. Copie o endereço até o nome do site, por exemplo <code>https://empresa.sharepoint.com/sites/SST-Guarulhos</code> (sem o resto).</div>
+
+<h2 id="p1"><span class="n">3</span>Preencher o ConfereVídeo e gerar os fluxos</h2>
+<ol class="passos">
+<li>No ConfereVídeo, abra a tela <b>Microsoft 365</b>.</li>
+<li>Preencha <span class="rotulo">Site do SharePoint</span>, <span class="rotulo">E-mails dos supervisores</span> e <span class="rotulo">E-mails do gestor</span> (vários e-mails: separe por vírgula). Deixe os nomes das listas como estão.</li>
+<li>A <span class="rotulo">Chave de segurança</span> já vem criada. Ela garante que o fluxo só aceite envios deste programa.</li>
+<li>Clique em <b>Salvar</b> e depois em <b>Gerar fluxos do Power Automate…</b>. Escolha uma pasta. Saem 4 arquivos <code>.zip</code> já preenchidos com o seu site e os e-mails, e um <code>LEIA-ME.txt</code>.</li>
+</ol>
+
+<h2 id="p2"><span class="n">4</span>Importar os fluxos no Power Automate</h2>
+<ol class="passos">
+<li>Entre em <b>make.powerautomate.com</b> com a conta da empresa.</li>
+<li>No menu da esquerda: <b>Meus fluxos</b> &gt; <b>Importar</b> &gt; <b>Importar pacote (Herdado)</b>.</li>
+<li><b>Carregar</b> &gt; escolha <code>1_Criar_listas.zip</code>.</li>
+<li>Em <b>Recursos relacionados</b>, clique em cada conexão (SharePoint e, nos outros fluxos, Teams e Outlook) e escolha a sua conta. Se não houver nenhuma, clique em <b>Criar nova</b> e entre com a conta da empresa.</li>
+<li>Clique em <b>Importar</b>. Repita com <code>2_Receber_eventos.zip</code>, <code>3_Cobranca_diaria.zip</code> e <code>4_Resumo_semanal.zip</code>.</li>
+</ol>
+<div class="caixa aviso"><b>Se o botão "Importar pacote (Herdado)" não aparecer</b>Algumas empresas desligam a importação. Peça à TI para importar, ou monte o fluxo principal à mão pelo <a href="#alt">anexo</a>.</div>
+
+<h2 id="p3"><span class="n">5</span>Criar as listas no SharePoint</h2>
+<ol class="passos">
+<li>Em <b>Meus fluxos</b>, abra <b>ConfereVídeo · 1 Criar listas</b>. Se ele estiver desligado, clique em <b>Ligar</b>. Depois, <b>Executar</b> &gt; <b>Executar fluxo</b>.</li>
+<li>Em cerca de 1 minuto aparecem no site as listas <code>ConfereVideo_Erros</code> e <code>ConfereVideo_Turnos</code>, com todas as colunas e índices.</li>
+<li>Se rodar de novo, ele avisa que as listas já existem: é normal, não estraga nada.</li>
+</ol>
+
+<h2 id="p4"><span class="n">6</span>Ligar o fluxo que recebe os erros</h2>
+<p>O fluxo <b>ConfereVídeo · 2 Receber eventos</b> vem com o gatilho <i>Quando uma solicitação HTTP é recebida</i>. Esse gatilho é Premium. A maioria das empresas não tem; nesse caso, troque o gatilho pelo do Teams, que é padrão. O resto do fluxo continua igual.</p>
+<h3>Sem licença Premium (o mais comum)</h3>
+<ol class="passos">
+<li>Abra o fluxo 2 e clique em <b>Editar</b>.</li>
+<li>Clique no gatilho do topo &gt; <b>…</b> &gt; <b>Excluir</b>.</li>
+<li><b>Adicionar um gatilho</b> &gt; procure <b>Microsoft Teams</b> &gt; <b>Quando uma solicitação de webhook do Teams é recebida</b> <span class="tag">padrão</span>.</li>
+<li>Em <b>Quem pode disparar o fluxo</b>, escolha <b>Qualquer pessoa</b>. A chave de segurança do programa é o que protege o fluxo.</li>
+<li><b>Salvar</b>. Clique de novo no gatilho e copie a <b>URL</b> que apareceu.</li>
+</ol>
+<h3>Com licença Premium</h3>
+<p>Não troque o gatilho: abra o fluxo, clique no gatilho, confira se <b>Quem pode disparar o fluxo</b> está em <b>Qualquer pessoa</b>, salve, ligue o fluxo e copie a <b>URL de HTTP POST</b>.</p>
+<h3>Colar no ConfereVídeo</h3>
+<ol class="passos">
+<li>Na tela <b>Microsoft 365</b>, cole a URL em <span class="rotulo">Endereço do fluxo (URL)</span>, marque <span class="rotulo">Enviar para o Microsoft 365</span> e escolha <span class="rotulo">Completo</span>.</li>
+<li>Clique em <b>Testar envio</b>. Em segundos chega no Teams o cartão "Conexão funcionando ✓".</li>
+</ol>
+<div class="caixa"><b>Canal ou chat?</b>Sem o campo <span class="rotulo">Link do canal do Teams</span>, os alertas chegam no chat de cada supervisor (enviados pelo bot Workflows). Para mandar para um canal: no Teams, clique nos <b>…</b> do canal &gt; <b>Obter link para o canal</b> e cole o link nesse campo. Canais privados não recebem cartões.</div>
+
+<h2 id="p5"><span class="n">7</span>Ligar a cobrança diária e o resumo semanal</h2>
+<p>Abra <b>ConfereVídeo · 3 Cobrança diária</b> e <b>ConfereVídeo · 4 Resumo semanal</b> e clique em <b>Ligar</b>. Para ver como fica sem esperar, use <b>Testar</b> &gt; <b>Manualmente</b>.</p>
+<figure><img src="img/emails.jpg" alt="E-mails: resumo do turno, erros aguardando tratativa e resumo da semana"><figcaption>Os três e-mails: resumo do turno (com PDF anexo), cobrança diária e resumo da semana.</figcaption></figure>
+
+<h2 id="p6"><span class="n">8</span>Montar o app de tratativa (Power Apps)</h2>
+<p>As três telas do app já estão prontas em texto, na pasta <code>Microsoft365\PowerApps</code>. Você só cria um app em branco, liga as listas e cola as telas.</p>
+<figure><img src="img/app.jpg" alt="Telas do app: painel, lista de erros e tratativa"><figcaption>Prévia aproximada das três telas (painel, erros e tratativa). No app real aparecem as fotos e os números da operação.</figcaption></figure>
+<ol class="passos">
+<li>Entre em <b>make.powerapps.com</b> &gt; <b>Criar</b> &gt; <b>Aplicativo de tela em branco</b>. Nome: <code>ConfereVídeo Tratativas</code>. Formato: <b>Telefone</b>.</li>
+<li>No menu da esquerda, <b>Dados</b> &gt; <b>Adicionar dados</b> &gt; <b>SharePoint</b> &gt; escolha o site &gt; marque <code>ConfereVideo_Erros</code> e <code>ConfereVideo_Turnos</code> &gt; <b>Conectar</b>.</li>
+<li><b>Configurações</b> &gt; <b>Geral</b> &gt; <b>Limite de linhas de dados</b>: <code>2000</code>.</li>
+<li><b>Descubra o separador do seu Power Apps.</b> Clique na tela e veja a fórmula de qualquer propriedade. Se aparece <code>RGBA(255; 255; 255; 1)</code> (ponto e vírgula), use a pasta <code>pt-BR</code>. Se aparece <code>RGBA(255, 255, 255, 1)</code> (vírgula), use a pasta <code>en-US</code>.</li>
+<li>Abra <code>0_todas_as_telas.yaml</code> no Bloco de Notas, <kbd>Ctrl</kbd>+<kbd>A</kbd> e <kbd>Ctrl</kbd>+<kbd>C</kbd>. No Power Apps, no painel <b>Modo de exibição de árvore</b>, clique em <b>App</b> e cole com <kbd>Ctrl</kbd>+<kbd>V</kbd> (ou clique com o botão direito &gt; <b>Colar</b>). Surgem as três telas de uma vez.</li>
+<li>Se ele não aceitar as três juntas, cole uma de cada vez: <code>1_Painel.yaml</code>, <code>2_Erros.yaml</code> e <code>3_Tratativa.yaml</code>. As marcas de erro que aparecem no meio do caminho somem quando as três telas existem. Os nomes precisam ficar <code>scrPainel</code>, <code>scrErros</code> e <code>scrTratativa</code>, porque as fórmulas usam esses nomes.</li>
+<li>Apague a <code>Screen1</code> vazia e arraste <code>scrPainel</code> para o topo da árvore. Ela é a tela de abertura.</li>
+<li><b>Salvar</b> &gt; <b>Publicar</b>. Depois, <b>Compartilhar</b> com os supervisores. Eles também precisam de permissão de edição nas duas listas.</li>
+<li>Copie o link do app (<b>Aplicativos</b> &gt; <b>…</b> &gt; <b>Detalhes</b> &gt; <b>Link da Web</b>) e cole no ConfereVídeo, em <span class="rotulo">Link do app de tratativa</span>. Assim os cartões e e-mails ganham o botão "Fazer a tratativa". Para os e-mails dos fluxos 3 e 4, gere os fluxos de novo e importe <b>só o 3 e o 4</b> escolhendo <b>Atualizar</b> em vez de "Criar como novo".</li>
+</ol>
+<div class="caixa aviso"><b>Se o Power Apps não aceitar colar a tela inteira</b>Crie uma tela em branco (<b>Nova tela</b> &gt; <b>Em branco</b>), renomeie para <code>scrPainel</code>, clique nela e cole o arquivo <code>controles_1_Painel.yaml</code>. Faça o mesmo para <code>scrErros</code> e <code>scrTratativa</code>. Em cada tela, copie também as propriedades <b>Fill</b> e <b>OnVisible</b> que estão no começo do arquivo da tela inteira.</div>
+<div class="caixa"><b>No Teams</b>Para os supervisores acharem o app fácil: no canal, clique em <b>+</b> (adicionar guia) &gt; <b>Power Apps</b> &gt; escolha o app. No celular, eles usam o app do Power Apps ou o próprio Teams.</div>
+<p>O botão <b>Demonstração</b> no painel mostra ou esconde os itens que vieram da demonstração do programa.</p>
+<div class="caixa"><b>Avisos azuis de "delegação" no Studio</b>São esperados nas contagens de confirmados e falsos alarmes: cada contagem considera até 2.000 itens do período escolhido, mais do que suficiente para um posto. A lista de erros mostra todos os pendentes e, nos outros filtros, os últimos 60 dias. Assim ela continua rápida mesmo com mais de 5.000 itens na lista do SharePoint.</div>
+
+<h2 id="p7"><span class="n">9</span>Automação no PC da câmera</h2>
+<p>Na tela <b>Automação</b> do ConfereVídeo:</p>
+<div class="rolar"><table>
+<tr><th>Opção</th><th>O que faz</th></tr>
+<tr><td>Abrir quando o PC ligar</td><td>Cria um atalho na inicialização do Windows. O programa abre sozinho 20 s depois do login e já liga a câmera ao vivo.</td></tr>
+<tr><td>Ligar a câmera ao abrir</td><td>Mesmo comportamento quando alguém abre o programa à mão.</td></tr>
+<tr><td>Não deixar o PC suspender</td><td>Enquanto a câmera está ligada, o Windows não suspende nem apaga a tela.</td></tr>
+<tr><td>Horários de troca de turno</td><td>Ex.: <code>06:00, 14:20, 22:35</code>. Em cada horário o programa fecha o relatório (HTML + PDF), manda o resumo e começa o próximo turno sozinho.</td></tr>
+<tr><td>Avisar câmera sem imagem</td><td>Alerta no Teams e por e-mail depois de N minutos sem imagem, e outro quando ela volta.</td></tr>
+<tr><td>Guardar recortes por N dias</td><td>Apaga sozinho as sessões mais antigas (padrão: 90 dias). Os itens no SharePoint seguem a regra de retenção da empresa.</td></tr>
+</table></div>
+<div class="caixa"><b>Para o PC funcionar sozinho de verdade</b>Deixe o PC entrar no Windows com o usuário do posto (logon automático é decisão da TI), ligado na tomada e sem desligamento automático de tela por política. Se o Windows reiniciar para atualizar, o programa volta sozinho.</div>
+
+<h2 id="p8"><span class="n">10</span>Teste completo (5 minutos)</h2>
+<ol class="passos">
+<li>Na tela <b>Microsoft 365</b>, marque <span class="rotulo">Enviar também a demonstração</span> e salve.</li>
+<li>Em <b>Câmera ao vivo</b>, clique em <b>▶ Ver demonstração</b> e deixe o vídeo rodar até o fim (1 minuto).</li>
+<li>Confira: chegam 4 cartões de erro no Teams; a lista <code>ConfereVideo_Erros</code> ganha 4 itens com foto e recorte; no fim chega o cartão do turno e o e-mail do gestor com o PDF.</li>
+<li>No app, ligue <b>Demonstração</b>, abra um erro, assista ao recorte e salve uma tratativa.</li>
+<li>Depois, <b>desmarque</b> "Enviar também a demonstração". Se quiser, apague os itens de demonstração das listas.</li>
+</ol>
+
+<h2 id="prob"><span class="n">11</span>Quando algo não sai certo</h2>
+<div class="rolar"><table>
+<tr><th>O que aparece</th><th>O que fazer</th></tr>
+<tr><td>"o fluxo pede login (401)"</td><td>No gatilho do fluxo 2, em <b>Quem pode disparar o fluxo</b>, escolha <b>Qualquer pessoa</b> e salve.</td></tr>
+<tr><td>"endereço do fluxo não encontrado (404)"</td><td>A URL mudou (por exemplo, depois de trocar o gatilho). Copie de novo do gatilho e cole no programa.</td></tr>
+<tr><td>Fila crescendo, "sem conexão"</td><td>O PC está sem internet, ou o proxy da empresa bloqueia <code>*.powerplatform.com</code> / <code>*.logic.azure.com</code>. Fale com a TI. Os envios ficam guardados.</td></tr>
+<tr><td>Teste chega, mas os erros não viram itens da lista</td><td>Em <b>Meus fluxos</b> &gt; fluxo 2 &gt; <b>Histórico de execuções</b>, abra a execução marcada como <b>Falha</b> e veja a etapa em vermelho. O alerta no Teams sai mesmo assim. Quase sempre é o fluxo 1 que não rodou (listas não existem) ou falta permissão no site.</td></tr>
+<tr><td>Execução "Cancelada" no fluxo 2</td><td>A chave do programa é diferente da do fluxo (alguém gerou chave nova). Copie a chave na tela Microsoft 365 (botão <b>Copiar</b>), edite o fluxo 2, abra a condição <b>Conferir_chave</b> e cole a chave no lugar da antiga. Não reimporte o fluxo 2 por cima: isso traria de volta o gatilho Premium e mudaria a URL.</td></tr>
+<tr><td>Cartão chega sem a foto</td><td>Teams antigo no celular. Atualize o Teams; o botão "Ver recorte" funciona igual.</td></tr>
+<tr><td>Envios recusados (pasta <code>fila_envio\falhou</code>)</td><td>Corrija a causa e use <b>Reenviar o que falhou</b>. O registro de tudo fica em <code>fila_envio\envios.log</code>.</td></tr>
+<tr><td>Power Apps marca erro nas fórmulas depois de colar</td><td>Usou a pasta errada (vírgula × ponto e vírgula). Apague as telas e cole as da outra pasta. Se aparecer erro de "Variant", troque <code>galleryVertical</code> por <code>Vertical</code> no arquivo.</td></tr>
+</table></div>
+
+<h2 id="lgpd"><span class="n">12</span>Segurança e LGPD</h2>
+<ul>
+<li>Os dados ficam no Microsoft 365 da própria empresa (SharePoint, Teams, Outlook). Nada passa por servidores de terceiros.</li>
+<li>O fluxo só aceita envios com a chave de segurança do programa. Quem não tem a chave tem a execução cancelada.</li>
+<li>O sistema não faz reconhecimento facial. O operador é informado pelo supervisor na tratativa, quando necessário.</li>
+<li>Só os trechos com erro são gravados. O PC apaga os antigos sozinho; no SharePoint, aplique a regra de retenção da empresa.</li>
+<li>Toda detecção é automática e pode errar: o app pede a conferência do recorte ("confirmado" ou "falso alarme") antes de qualquer tratativa.</li>
+</ul>
+
+<h2 id="ref"><span class="n">13</span>Referência: colunas das listas</h2>
+<p>O fluxo 1 cria tudo sozinho. Esta tabela serve para conferência, ou para criar à mão se o fluxo 1 não puder rodar. Use exatamente estes nomes, sem acento.</p>
+<div class="rolar"><table>
+<tr><th>ConfereVideo_Erros</th><th>Tipo</th><th>ConfereVideo_Turnos</th><th>Tipo</th></tr>
+<tr><td>Title (código do erro)</td><td>Texto</td><td>Title (código do turno)</td><td>Texto</td></tr>
+<tr><td>TipoCodigo, Tipo, Unidade, Local, Posto, Turno, Origem, Fonte, Sessao, MomentoVideo, Tratativa, Operador, TratadoPor</td><td>Texto (uma linha)</td><td>Unidade, Local, Posto, Turno, Origem</td><td>Texto (uma linha)</td></tr>
+<tr><td>Status (padrão: Pendente)</td><td>Texto (uma linha)</td><td>Inicio, Fim</td><td>Data e hora</td></tr>
+<tr><td>DataHora, TratadoEm</td><td>Data e hora</td><td>Itens, Erros, ItensSemErro, SemLeitor, CaixaErrada, SemBipe, BipeDuplo</td><td>Número</td></tr>
+<tr><td>Bipes</td><td>Número</td><td>PctSemErro</td><td>Número (1 casa)</td></tr>
+<tr><td>Observacao, LinkRecorte, Miniatura</td><td>Várias linhas, texto simples</td><td></td><td></td></tr>
+</table></div>
+<p>A foto e o recorte de cada erro ficam como <b>anexos</b> do item. A coluna <code>Miniatura</code> guarda uma foto pequena, que o app e a lista mostram sem precisar abrir o anexo.</p>
+
+<h2 id="alt"><span class="n">14</span>Alternativas</h2>
+<h3>Só alerta no Teams, sem lista (5 minutos)</h3>
+<ol class="passos">
+<li>No Teams, nos <b>…</b> do canal &gt; <b>Fluxos de trabalho</b> &gt; modelo <b>Postar em um canal quando uma solicitação de webhook é recebida</b>.</li>
+<li>Escolha a equipe e o canal &gt; <b>Adicionar fluxo de trabalho</b> &gt; copie a URL.</li>
+<li>No ConfereVídeo, cole a URL e escolha <span class="rotulo">Só alerta no canal do Teams</span>. Cada erro chega no canal com a foto. Não há lista nem app nesse modo.</li>
+</ol>
+<h3>Montar o fluxo 2 à mão (se não puder importar)</h3>
+<p>Comece pelo modelo do item anterior, ou por um fluxo instantâneo com o gatilho <b>Quando uma solicitação de webhook do Teams é recebida</b> (Qualquer pessoa). Depois do gatilho, adicione:</p>
+<div class="rolar"><table>
+<tr><th>Ação</th><th>Como preencher</th></tr>
+<tr><td><b>Compor</b> (nome: <code>Dados</code>)</td><td><code>triggerBody()?['conferevideo']</code></td></tr>
+<tr><td><b>Inicializar variável</b></td><td>Nome <code>LinkRecorte</code>, tipo Cadeia de caracteres, valor vazio.</td></tr>
+<tr><td><b>Condição</b>: evento é "erro" ou "sessao"</td><td><code>outputs('Dados')?['evento']</code> é igual a <code>erro</code> (ou <code>sessao</code>).</td></tr>
+<tr><td>Dentro do Sim: <b>Enviar uma solicitação HTTP para o SharePoint</b> (nome: <code>Criar_item</code>)</td><td>Endereço do site: <code>outputs('Dados')?['site']</code> · Método POST · URI: <code>_api/web/lists/getbytitle('@{outputs('Dados')?['lista']}')/items</code> · Cabeçalhos: <code>Accept</code> e <code>Content-Type</code> = <code>application/json;odata=nometadata</code> · Corpo: <code>string(outputs('Dados')?['item'])</code></td></tr>
+<tr><td><b>Aplicar a cada</b> sobre <code>outputs('Dados')?['anexos']</code> com <b>Adicionar anexo</b> (SharePoint)</td><td>Site e lista como acima · Id: <code>body('Criar_item')?['Id']</code> · Nome: <code>items('Aplicar_a_cada')?['nome']</code> · Conteúdo: <code>base64ToBinary(items('Aplicar_a_cada')?['b64'])</code></td></tr>
+<tr><td>Ainda dentro do <b>Aplicar a cada</b>: <b>Condição</b> + <b>Definir variável</b></td><td>Se <code>items('Aplicar_a_cada')?['nome']</code> termina com <code>_recorte.mp4</code>: <code>LinkRecorte</code> = <code>body('Adicionar_anexo')?['AbsoluteUri']</code></td></tr>
+<tr><td><b>Publicar cartão em um chat ou canal</b> (Teams), fora da condição</td><td>Cartão: <code>replace(string(triggerBody()?['attachments']?[0]?['content']), 'https://conferevideo.invalid/recorte', if(empty(variables('LinkRecorte')), outputs('Dados')?['site'], variables('LinkRecorte')))</code></td></tr>
+<tr><td><b>Enviar um email (V2)</b>, quando <code>outputs('Dados')?['email']?['para']</code> não estiver vazio</td><td>Para, Assunto e Corpo: <code>outputs('Dados')?['email']?['para']</code>, <code>…['assunto']</code> e <code>…['html']</code>.</td></tr>
+</table></div>
+<p>A chave fica em <code>outputs('Dados')?['chave']</code>. Compare com a do programa numa condição no começo e use <b>Encerrar</b> (Cancelado) quando for diferente.</p>
+
+<footer>ConfereVídeo · guia de implantação no Microsoft 365. Usa só conectores padrão do Microsoft 365. Os nomes dos menus podem variar um pouco conforme a versão e o idioma do Microsoft 365.</footer>
+</main>
+<script>
+document.querySelectorAll("pre").forEach(p=>{const b=document.createElement("button");b.type="button";b.textContent="Copiar";
+b.onclick=()=>{const t=p.innerText.replace(/Copiar$/,"").trim();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{b.textContent="Copiado"},()=>{const r=document.createRange();r.selectNodeContents(p);getSelection().removeAllRanges();getSelection().addRange(r)})};p.appendChild(b)});
+</script>
+</body>
+</html>

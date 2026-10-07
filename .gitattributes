@@ -1,0 +1,9 @@
+* text=auto
+*.bat text eol=crlf
+*.vbs text eol=crlf
+*.ps1 text eol=crlf
+*.pt binary
+*.mp4 binary
+*.png binary
+*.jpg binary
+*.ico binary

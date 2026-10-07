@@ -1,0 +1,457 @@
+Screens:
+  scrTratativa:
+    Properties:
+      Fill: |-
+        =RGBA(244; 246; 249; 1)
+      OnVisible: |-
+        =UpdateContext({locStatus: If(varErro.Status = "Pendente"; ""; varErro.Status); locTrat: Coalesce(varErro.Tratativa; "")});; Reset(trtOperador);; Reset(trtObs)
+    Children:
+      - trtTopo:
+          Control: Rectangle
+          Properties:
+            X: =0
+            Y: =0
+            Width: =Parent.Width
+            Height: =132
+            Fill: |-
+              =RGBA(22; 32; 46; 1)
+      - trtVoltar:
+          Control: Classic/Icon
+          Variant: ChevronLeft
+          Properties:
+            Icon: =Icon.ChevronLeft
+            X: =12
+            Y: =40
+            Width: =52
+            Height: =52
+            OnSelect: =Back()
+            Color: |-
+              =RGBA(255; 255; 255; 1)
+            PaddingTop: =8
+            PaddingBottom: =8
+            PaddingLeft: =8
+            PaddingRight: =8
+            AccessibleLabel: |-
+              ="Voltar"
+      - trtMarca:
+          Control: Label
+          Properties:
+            Text: |-
+              ="CONFEREVÍDEO · TRATATIVAS"
+            X: =68
+            Y: =22
+            Width: =520
+            Height: =26
+            Size: =10
+            Color: |-
+              =RGBA(159; 179; 204; 1)
+            FontWeight: =FontWeight.Semibold
+      - trtTitulo:
+          Control: Label
+          Properties:
+            Text: |-
+              ="Tratativa do erro"
+            X: =68
+            Y: =46
+            Width: =560
+            Height: =44
+            Size: =22
+            Color: |-
+              =RGBA(255; 255; 255; 1)
+            FontWeight: =FontWeight.Bold
+      - trtSub:
+          Control: Label
+          Properties:
+            Text: |-
+              =varErro.Posto & " · " & Text(varErro.DataHora; "dd/mm/yyyy hh:mm")
+            X: =68
+            Y: =88
+            Width: =560
+            Height: =30
+            Size: =12
+            Color: |-
+              =RGBA(201; 213; 227; 1)
+      - trtFoto:
+          Control: Image
+          Properties:
+            Image: =varErro.Miniatura
+            X: =32
+            Y: =148
+            Width: =576
+            Height: =300
+            ImagePosition: =ImagePosition.Fit
+            Fill: |-
+              =RGBA(11; 16; 24; 1)
+      - trtFaixa:
+          Control: Rectangle
+          Properties:
+            X: =32
+            Y: =462
+            Width: =6
+            Height: =40
+            Fill: |-
+              =Switch(varErro.TipoCodigo; "sem_leitor"; RGBA(194; 65; 12; 1); "caixa_errada"; RGBA(124; 58; 237; 1); "sem_bipe"; RGBA(14; 116; 144; 1); RGBA(185; 28; 28; 1))
+      - trtTipo:
+          Control: Label
+          Properties:
+            Text: =varErro.Tipo
+            X: =48
+            Y: =458
+            Width: =560
+            Height: =48
+            Size: =18
+            Color: |-
+              =RGBA(22; 32; 46; 1)
+            FontWeight: =FontWeight.Bold
+      - trtInfo:
+          Control: Label
+          Properties:
+            Text: |-
+              ="Turno: " & Coalesce(varErro.Turno; "—") & "   ·   Bipes ouvidos: " & Coalesce(Text(varErro.Bipes); "—") & "   ·   Origem: " & varErro.Origem
+            X: =32
+            Y: =506
+            Width: =576
+            Height: =30
+            Size: =11
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+      - trtRecorte:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="▶  Assistir ao recorte"
+            X: =32
+            Y: =546
+            Width: =576
+            Height: =54
+            OnSelect: =Launch(varErro.LinkRecorte)
+            Fill: |-
+              =RGBA(15; 76; 129; 1)
+            Color: |-
+              =RGBA(255; 255; 255; 1)
+            Size: =13
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =0
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            DisplayMode: |-
+              =If(IsBlank(varErro.LinkRecorte); DisplayMode.Disabled; DisplayMode.Edit)
+            DisabledFill: |-
+              =RGBA(157; 179; 200; 1)
+            DisabledColor: |-
+              =RGBA(255; 255; 255; 1)
+      - trtResTit:
+          Control: Label
+          Properties:
+            Text: |-
+              ="1. O ERRO ACONTECEU?"
+            X: =32
+            Y: =616
+            Width: =576
+            Height: =28
+            Size: =11
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - trtConfirmado:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Sim, erro confirmado"
+            X: =32
+            Y: =648
+            Width: =284
+            Height: =44
+            OnSelect: |-
+              =UpdateContext({locStatus: "Confirmado"})
+            Fill: |-
+              =If(locStatus = "Confirmado"; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(locStatus = "Confirmado"; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+      - trtFalso:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Não, falso alarme"
+            X: =324
+            Y: =648
+            Width: =284
+            Height: =44
+            OnSelect: |-
+              =UpdateContext({locStatus: "Falso alarme"; locTrat: ""})
+            Fill: |-
+              =If(locStatus = "Falso alarme"; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(locStatus = "Falso alarme"; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+      - trtTratTit:
+          Control: Label
+          Properties:
+            Text: |-
+              ="2. QUAL FOI A TRATATIVA?"
+            X: =32
+            Y: =704
+            Width: =576
+            Height: =28
+            Size: =11
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+            Visible: |-
+              =locStatus = "Confirmado"
+      - trtOp1:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Orientação no posto"
+            X: =32
+            Y: =736
+            Width: =284
+            Height: =44
+            OnSelect: |-
+              =UpdateContext({locTrat: "Orientação no posto"})
+            Fill: |-
+              =If(locTrat = "Orientação no posto"; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(locTrat = "Orientação no posto"; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            Visible: |-
+              =locStatus = "Confirmado"
+      - trtOp2:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Feedback registrado"
+            X: =324
+            Y: =736
+            Width: =284
+            Height: =44
+            OnSelect: |-
+              =UpdateContext({locTrat: "Feedback registrado"})
+            Fill: |-
+              =If(locTrat = "Feedback registrado"; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(locTrat = "Feedback registrado"; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            Visible: |-
+              =locStatus = "Confirmado"
+      - trtOp3:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Treinamento / reciclagem"
+            X: =32
+            Y: =788
+            Width: =284
+            Height: =44
+            OnSelect: |-
+              =UpdateContext({locTrat: "Treinamento / reciclagem"})
+            Fill: |-
+              =If(locTrat = "Treinamento / reciclagem"; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(locTrat = "Treinamento / reciclagem"; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            Visible: |-
+              =locStatus = "Confirmado"
+      - trtOp4:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Ajuste no posto"
+            X: =324
+            Y: =788
+            Width: =284
+            Height: =44
+            OnSelect: |-
+              =UpdateContext({locTrat: "Ajuste no posto"})
+            Fill: |-
+              =If(locTrat = "Ajuste no posto"; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(locTrat = "Ajuste no posto"; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            Visible: |-
+              =locStatus = "Confirmado"
+      - trtOpTit:
+          Control: Label
+          Properties:
+            Text: |-
+              ="OPERADOR (NOME OU MATRÍCULA) E OBSERVAÇÃO"
+            X: =32
+            Y: =846
+            Width: =576
+            Height: =28
+            Size: =11
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - trtOperador:
+          Control: Classic/TextInput
+          Properties:
+            Default: =varErro.Operador
+            HintText: |-
+              ="Ex.: 10234 - João"
+            X: =32
+            Y: =876
+            Width: =576
+            Height: =46
+            Size: =12
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            Color: |-
+              =RGBA(22; 32; 46; 1)
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+      - trtObs:
+          Control: Classic/TextInput
+          Properties:
+            Default: =varErro.Observacao
+            HintText: |-
+              ="O que foi conversado / combinado"
+            X: =32
+            Y: =930
+            Width: =576
+            Height: =82
+            Size: =12
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            Color: |-
+              =RGBA(22; 32; 46; 1)
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            Mode: =TextMode.MultiLine
+      - trtSalvar:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Salvar tratativa"
+            X: =32
+            Y: =1028
+            Width: =576
+            Height: =64
+            OnSelect: |-
+              =Patch(ConfereVideo_Erros; varErro; {Status: locStatus; Tratativa: If(locStatus = "Confirmado"; locTrat; ""); Operador: trtOperador.Text; Observacao: trtObs.Text; TratadoPor: User().FullName; TratadoEm: Now()});;
+              If(IsEmpty(Errors(ConfereVideo_Erros)); Notify("Tratativa salva."; NotificationType.Success);; Back(); Notify("Não consegui salvar: " & First(Errors(ConfereVideo_Erros)).Message; NotificationType.Error))
+            Fill: |-
+              =RGBA(21; 128; 61; 1)
+            Color: |-
+              =RGBA(255; 255; 255; 1)
+            Size: =15
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =0
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            DisplayMode: |-
+              =If(IsBlank(locStatus) || (locStatus = "Confirmado" && IsBlank(locTrat)); DisplayMode.Disabled; DisplayMode.Edit)
+            DisabledFill: |-
+              =RGBA(167; 201; 179; 1)
+            DisabledColor: |-
+              =RGBA(255; 255; 255; 1)

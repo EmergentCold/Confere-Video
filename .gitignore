@@ -1,0 +1,13 @@
+# Gerados pelo programa (ficam só no PC do posto)
+resultados/
+fila_envio/
+fluxos_power_automate/
+erro.log
+diagnostico.txt
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

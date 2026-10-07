@@ -1,0 +1,555 @@
+Screens:
+  scrPainel:
+    Properties:
+      Fill: |-
+        =RGBA(244; 246; 249; 1)
+      OnVisible: |-
+        =If(IsBlank(varPeriodo); Set(varPeriodo; 7));; Select(pnlAtualizar)
+    Children:
+      - pnlTopo:
+          Control: Rectangle
+          Properties:
+            X: =0
+            Y: =0
+            Width: =Parent.Width
+            Height: =132
+            Fill: |-
+              =RGBA(22; 32; 46; 1)
+      - pnlMarca:
+          Control: Label
+          Properties:
+            Text: |-
+              ="CONFEREVÍDEO · TRATATIVAS"
+            X: =32
+            Y: =22
+            Width: =520
+            Height: =26
+            Size: =10
+            Color: |-
+              =RGBA(159; 179; 204; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlTitulo:
+          Control: Label
+          Properties:
+            Text: |-
+              ="Painel da conferência"
+            X: =32
+            Y: =46
+            Width: =560
+            Height: =44
+            Size: =22
+            Color: |-
+              =RGBA(255; 255; 255; 1)
+            FontWeight: =FontWeight.Bold
+      - pnlSub:
+          Control: Label
+          Properties:
+            Text: |-
+              =If(varPeriodo = 1; "Hoje"; "Últimos " & varPeriodo & " dias") & If(varDemo; " · com demonstração"; "")
+            X: =32
+            Y: =88
+            Width: =560
+            Height: =30
+            Size: =12
+            Color: |-
+              =RGBA(201; 213; 227; 1)
+      - pnlAtualizar:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Atualizar"
+            X: =0
+            Y: =0
+            Width: =10
+            Height: =10
+            OnSelect: |-
+              =ClearCollect(colTurnos; Filter(ConfereVideo_Turnos; Inicio >= DateAdd(Today(); 1 - varPeriodo; TimeUnit.Days); (varDemo || Origem <> "Demonstração")));;
+              ClearCollect(colPendentes; Filter(ConfereVideo_Erros; Status = "Pendente"; (varDemo || Origem <> "Demonstração")));;
+              Set(varConfirmados; CountRows(Filter(ConfereVideo_Erros; DataHora >= DateAdd(Today(); 1 - varPeriodo; TimeUnit.Days); Status = "Confirmado"; (varDemo || Origem <> "Demonstração"))));;
+              Set(varFalsos; CountRows(Filter(ConfereVideo_Erros; DataHora >= DateAdd(Today(); 1 - varPeriodo; TimeUnit.Days); Status = "Falso alarme"; (varDemo || Origem <> "Demonstração"))));;
+              Set(varTipos; Table(
+                  {Nome: "Sem passar no leitor"; Qtd: Sum(colTurnos; SemLeitor); Cor: RGBA(194; 65; 12; 1)};
+                  {Nome: "Colocou em outra caixa"; Qtd: Sum(colTurnos; CaixaErrada); Cor: RGBA(124; 58; 237; 1)};
+                  {Nome: "Passou no leitor sem bipar"; Qtd: Sum(colTurnos; SemBipe); Cor: RGBA(14; 116; 144; 1)};
+                  {Nome: "Bipe duplo"; Qtd: Sum(colTurnos; BipeDuplo); Cor: RGBA(185; 28; 28; 1)}
+              ))
+            Fill: |-
+              =RGBA(15; 76; 129; 1)
+            Color: |-
+              =RGBA(255; 255; 255; 1)
+            Size: =13
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =0
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            Visible: =false
+      - pnlPeriodo1:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Hoje"
+            X: =32
+            Y: =152
+            Width: =140
+            Height: =44
+            OnSelect: |-
+              =Set(varPeriodo; 1);; Select(pnlAtualizar)
+            Fill: |-
+              =If(varPeriodo = 1; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(varPeriodo = 1; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+      - pnlPeriodo7:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="7 dias"
+            X: =184
+            Y: =152
+            Width: =140
+            Height: =44
+            OnSelect: |-
+              =Set(varPeriodo; 7);; Select(pnlAtualizar)
+            Fill: |-
+              =If(varPeriodo = 7; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(varPeriodo = 7; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+      - pnlPeriodo30:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="30 dias"
+            X: =336
+            Y: =152
+            Width: =140
+            Height: =44
+            OnSelect: |-
+              =Set(varPeriodo; 30);; Select(pnlAtualizar)
+            Fill: |-
+              =If(varPeriodo = 30; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(varPeriodo = 30; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+      - pnlDemo:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Demonstração"
+            X: =488
+            Y: =152
+            Width: =120
+            Height: =44
+            OnSelect: |-
+              =Set(varDemo; !varDemo);; Select(pnlAtualizar)
+            Fill: |-
+              =If(varDemo; RGBA(15; 76; 129; 1); RGBA(255; 255; 255; 1))
+            Color: |-
+              =If(varDemo; RGBA(255; 255; 255; 1); RGBA(22; 32; 46; 1))
+            Size: =11
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+      - pnlCardItens:
+          Control: Rectangle
+          Properties:
+            X: =32
+            Y: =216
+            Width: =280
+            Height: =110
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            BorderThickness: =1
+      - pnlValorItens:
+          Control: Label
+          Properties:
+            Text: |-
+              =Sum(colTurnos; Itens)
+            X: =50
+            Y: =230
+            Width: =250
+            Height: =50
+            Size: =26
+            Color: |-
+              =RGBA(22; 32; 46; 1)
+            FontWeight: =FontWeight.Bold
+      - pnlRotuloItens:
+          Control: Label
+          Properties:
+            Text: |-
+              ="ITENS CONFERIDOS"
+            X: =50
+            Y: =282
+            Width: =250
+            Height: =28
+            Size: =10
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlCardErros:
+          Control: Rectangle
+          Properties:
+            X: =328
+            Y: =216
+            Width: =280
+            Height: =110
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            BorderThickness: =1
+      - pnlValorErros:
+          Control: Label
+          Properties:
+            Text: |-
+              =Sum(colTurnos; Erros)
+            X: =346
+            Y: =230
+            Width: =250
+            Height: =50
+            Size: =26
+            Color: |-
+              =RGBA(185; 28; 28; 1)
+            FontWeight: =FontWeight.Bold
+      - pnlRotuloErros:
+          Control: Label
+          Properties:
+            Text: |-
+              ="ERROS DETECTADOS"
+            X: =346
+            Y: =282
+            Width: =250
+            Height: =28
+            Size: =10
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlCardSemErro:
+          Control: Rectangle
+          Properties:
+            X: =32
+            Y: =340
+            Width: =280
+            Height: =110
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            BorderThickness: =1
+      - pnlValorSemErro:
+          Control: Label
+          Properties:
+            Text: |-
+              =If(Sum(colTurnos; Itens) > 0; Round((1 - Sum(colTurnos; Erros) / Sum(colTurnos; Itens)) * 100; 1) & "%"; "—")
+            X: =50
+            Y: =354
+            Width: =250
+            Height: =50
+            Size: =26
+            Color: |-
+              =RGBA(21; 128; 61; 1)
+            FontWeight: =FontWeight.Bold
+      - pnlRotuloSemErro:
+          Control: Label
+          Properties:
+            Text: |-
+              ="ITENS SEM ERRO"
+            X: =50
+            Y: =406
+            Width: =250
+            Height: =28
+            Size: =10
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlCardPendentes:
+          Control: Rectangle
+          Properties:
+            X: =328
+            Y: =340
+            Width: =280
+            Height: =110
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            BorderThickness: =1
+      - pnlValorPendentes:
+          Control: Label
+          Properties:
+            Text: =CountRows(colPendentes)
+            X: =346
+            Y: =354
+            Width: =250
+            Height: =50
+            Size: =26
+            Color: |-
+              =RGBA(194; 65; 12; 1)
+            FontWeight: =FontWeight.Bold
+      - pnlRotuloPendentes:
+          Control: Label
+          Properties:
+            Text: |-
+              ="AGUARDANDO TRATATIVA"
+            X: =346
+            Y: =406
+            Width: =250
+            Height: =28
+            Size: =10
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlTipos:
+          Control: Label
+          Properties:
+            Text: |-
+              ="ERROS POR TIPO"
+            X: =32
+            Y: =476
+            Width: =576
+            Height: =30
+            Size: =11
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlGaleriaTipos:
+          Control: Gallery
+          Variant: galleryVertical
+          Properties:
+            Items: =varTipos
+            X: =32
+            Y: =510
+            Width: =576
+            Height: =236
+            TemplateSize: =58
+            TemplatePadding: =0
+            OnSelect: =false
+            ShowScrollbar: =false
+            Fill: |-
+              =RGBA(0; 0; 0; 0)
+          Children:
+            - pnlTipoNome:
+                Control: Label
+                Properties:
+                  Text: =ThisItem.Nome
+                  X: =0
+                  Y: =0
+                  Width: =420
+                  Height: =30
+                  Size: =12
+                  Color: |-
+                    =RGBA(22; 32; 46; 1)
+            - pnlTipoQtd:
+                Control: Label
+                Properties:
+                  Text: =ThisItem.Qtd
+                  X: =476
+                  Y: =0
+                  Width: =100
+                  Height: =30
+                  Size: =12
+                  Color: |-
+                    =RGBA(22; 32; 46; 1)
+                  FontWeight: =FontWeight.Bold
+                  Align: =Align.Right
+            - pnlTipoFundo:
+                Control: Rectangle
+                Properties:
+                  X: =0
+                  Y: =34
+                  Width: =576
+                  Height: =10
+                  Fill: |-
+                    =RGBA(238; 241; 245; 1)
+            - pnlTipoBarra:
+                Control: Rectangle
+                Properties:
+                  X: =0
+                  Y: =34
+                  Width: |-
+                    =576 * ThisItem.Qtd / Max(1; Max(varTipos; Qtd))
+                  Height: =10
+                  Fill: =ThisItem.Cor
+      - pnlTratTitulo:
+          Control: Label
+          Properties:
+            Text: |-
+              ="TRATATIVAS NO PERÍODO"
+            X: =32
+            Y: =764
+            Width: =576
+            Height: =30
+            Size: =11
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlTratCard:
+          Control: Rectangle
+          Properties:
+            X: =32
+            Y: =798
+            Width: =576
+            Height: =96
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            BorderColor: |-
+              =RGBA(227; 231; 238; 1)
+            BorderThickness: =1
+      - pnlConfirmados:
+          Control: Label
+          Properties:
+            Text: |-
+              =varConfirmados & " erros confirmados"
+            X: =50
+            Y: =808
+            Width: =540
+            Height: =30
+            Size: =13
+            Color: |-
+              =RGBA(22; 32; 46; 1)
+            FontWeight: =FontWeight.Semibold
+      - pnlFalsos:
+          Control: Label
+          Properties:
+            Text: |-
+              =varFalsos & " falsos alarmes (" & Round(varFalsos / Max(1; varConfirmados + varFalsos) * 100; 0) & "% do que foi conferido)"
+            X: =50
+            Y: =846
+            Width: =540
+            Height: =30
+            Size: =12
+            Color: |-
+              =RGBA(91; 102; 120; 1)
+      - pnlVerPendentes:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Fazer tratativas (" & CountRows(colPendentes) & ")"
+            X: =32
+            Y: =920
+            Width: =576
+            Height: =64
+            OnSelect: |-
+              =Set(varStatus; "Pendente");; Navigate(scrErros; ScreenTransition.Cover)
+            Fill: |-
+              =RGBA(15; 76; 129; 1)
+            Color: |-
+              =RGBA(255; 255; 255; 1)
+            Size: =15
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =0
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+      - pnlVerTodos:
+          Control: Classic/Button
+          Properties:
+            Text: |-
+              ="Ver todos os erros"
+            X: =32
+            Y: =1000
+            Width: =576
+            Height: =56
+            OnSelect: |-
+              =Set(varStatus; "Todos");; Navigate(scrErros; ScreenTransition.Cover)
+            Fill: |-
+              =RGBA(255; 255; 255; 1)
+            Color: |-
+              =RGBA(15; 76; 129; 1)
+            Size: =13
+            FontWeight: =FontWeight.Semibold
+            BorderThickness: =1
+            RadiusTopLeft: =6
+            RadiusTopRight: =6
+            RadiusBottomLeft: =6
+            RadiusBottomRight: =6
+            HoverFill: |-
+              =ColorFade(Self.Fill; -15%)
+            PressedFill: |-
+              =ColorFade(Self.Fill; -25%)
+            HoverColor: =Self.Color
+            PressedColor: =Self.Color
+            BorderColor: |-
+              =RGBA(15; 76; 129; 1)
+      - pnlRodape:
+          Control: Label
+          Properties:
+            Text: |-
+              ="Detecção automática por vídeo: confirme cada recorte antes de qualquer tratativa."
+            X: =32
+            Y: =1072
+            Width: =576
+            Height: =44
+            Size: =10
+            Color: |-
+              =RGBA(91; 102; 120; 1)
