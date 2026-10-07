@@ -9,12 +9,15 @@ Set-Location (Split-Path $PSScriptRoot -Parent)
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt pyinstaller
 if ($LASTEXITCODE) { throw "Falhou ao instalar os componentes (pip)." }
+# a IA usa operações do torchvision (NMS): confere antes de montar que elas funcionam com este torch
+python -c "import torch, torchvision; torchvision.ops.nms(torch.zeros((1, 4)), torch.zeros(1), 0.5); print('torch', torch.__version__, '| torchvision', torchvision.__version__)"
+if ($LASTEXITCODE) { throw "O torchvision instalado não funciona com este torch." }
 
 # --contents-directory . : as bibliotecas ficam ao lado do .exe, então a "pasta do programa"
 # (config.yaml, demo\, resultados\...) é a mesma pasta do ConfereVideo.exe
 python -m PyInstaller app.py --name ConfereVideo --windowed --icon icone.ico --contents-directory . `
     --noconfirm --clean `
-    --collect-all ultralytics --collect-all imageio_ffmpeg --collect-data _sounddevice_data `
+    --collect-all ultralytics --collect-all torchvision --collect-all imageio_ffmpeg --collect-data _sounddevice_data `
     --hidden-import lap --copy-metadata lap --copy-metadata torch
 if ($LASTEXITCODE) { throw "Falhou ao montar o ConfereVideo.exe (PyInstaller)." }
 

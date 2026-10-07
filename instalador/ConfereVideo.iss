@@ -21,8 +21,8 @@ UninstallDisplayIcon={app}\ConfereVideo.exe
 UninstallDisplayName=ConfereVídeo
 Compression=lzma2/max
 SolidCompression=yes
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
 
 [Languages]
