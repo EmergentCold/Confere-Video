@@ -13,6 +13,7 @@ const ESPERADO = ["sem_leitor", "bipe_duplo", "caixa_errada", "sem_bipe"];
   const webview = await device.webView({ pkg: PKG }, { timeout: 180000 });
   const page = await webview.page();
   page.on("pageerror", (e) => console.log("pageerror:", e.message));
+  page.on("console", (m) => console.log("console:", m.type(), m.text()));
   await page.waitForFunction(() => typeof fonte !== "undefined" && fonte.url && !document.querySelector("#bt-conferir").disabled, null, { timeout: 180000 });
   await device.screenshot({ path: "celular/teste/1_inicio.png" });
   const t0 = Date.now();
