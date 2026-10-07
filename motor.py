@@ -157,7 +157,10 @@ def hms(s):
 
 def carregar_modelo(cfg):
     from ultralytics import YOLO
-    return YOLO(cfg["modelo_pose"])
+    m = Path(cfg["modelo_pose"])
+    if not m.is_absolute() and (PASTA / m).exists():
+        m = PASTA / m  # a IA vem na pasta do programa: não depende da pasta de onde ele foi aberto
+    return YOLO(str(m))
 
 
 # =========================================================================

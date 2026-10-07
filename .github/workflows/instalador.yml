@@ -1,0 +1,64 @@
+name: Instalador
+
+# Monta o instalador para Windows, instala num Windows limpo, roda a demonstração
+# sem abrir a janela e publica o .exe na página Releases do repositório.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "*.py"
+      - requirements.txt
+      - config.yaml
+      - "demo/**"
+      - "Microsoft365/**"
+      - "icone.*"
+      - "instalador/**"
+      - .github/workflows/instalador.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: instalador-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  instalador:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Montar o ConfereVideo.exe e o instalador
+        shell: pwsh
+        run: ./instalador/montar.ps1 -Versao "1.0.${{ github.run_number }}"
+
+      - name: Instalar e rodar a demonstração (sem abrir a janela)
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\ConfereVideo_Instalador.exe -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER' -Wait -PassThru
+          if ($p.ExitCode) { throw "A instalação falhou (código $($p.ExitCode))." }
+          $pasta = "$env:LOCALAPPDATA\Programs\ConfereVideo"
+          $json = "$env:RUNNER_TEMP\teste_demo.json"
+          $t = Start-Process "$pasta\ConfereVideo.exe" -ArgumentList '--testar-demo', $json -Wait -PassThru
+          if (Test-Path "$pasta\erro.log") { Get-Content "$pasta\erro.log" }
+          Get-Content $json
+          $r = Get-Content $json -Raw | ConvertFrom-Json
+          if ($t.ExitCode -or -not $r.ok -or $r.itens -ne 10 -or $r.erros.Count -ne 4 -or $r.recortes -ne 8 -or -not $r.pdf) {
+            throw "A demonstração não deu o resultado esperado (10 itens, 4 erros, 8 recortes e o PDF)."
+          }
+
+      - name: Publicar o instalador em Releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "instalador-" + ("${{ github.ref_name }}" -replace '[^A-Za-z0-9._-]', '-')
+          gh release delete $tag --cleanup-tag --yes 2>$null
+          if ($LASTEXITCODE) { Write-Host "Sem versão anterior para trocar." }
+          $notas = "Instalador do ConfereVídeo para Windows 10/11 (64 bits), montado a partir de ${{ github.ref_name }} (${{ github.sha }}). Baixe o ConfereVideo_Instalador.exe e dê dois cliques: não precisa instalar Python. A demonstração foi testada num Windows limpo antes de publicar."
+          gh release create $tag dist\ConfereVideo_Instalador.exe --target ${{ github.sha }} --prerelease --title "ConfereVídeo $("1.0.${{ github.run_number }}") – instalador (${{ github.ref_name }})" --notes $notas

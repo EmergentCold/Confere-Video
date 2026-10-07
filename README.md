@@ -22,6 +22,14 @@ Conferência da separação por vídeo. O sistema acompanha a mão do operador e
 
 ## Instalar (Windows)
 
+**Jeito fácil (sem Python):** baixe o `ConfereVideo_Instalador.exe` na página
+[Releases](../../releases) do repositório e dê dois cliques. Ele instala na pasta do usuário
+(não pede administrador) e cria o atalho na área de trabalho. Cada instalador é testado num
+Windows limpo antes de ser publicado (instala e roda a demonstração). Para montar o instalador
+no próprio PC: `powershell -ExecutionPolicy Bypass -File instalador\montar.ps1`.
+
+**Com Python:**
+
 1. Python 3.11 ou 3.12 com "Add python.exe to PATH".
 2. Dois cliques em `INSTALAR.bat`.
 3. Abrir pelo atalho **ConfereVideo** na área de trabalho.

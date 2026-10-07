@@ -15,6 +15,11 @@ import webbrowser
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
+# instalado pelo ConfereVideo_Instalador.exe: roda como ConfereVideo.exe, sem Python no PC
+CONGELADO = getattr(sys, "frozen", False)
+if CONGELADO and sys.stdout is None:  # sem janela de comando: o que as bibliotecas escrevem na tela vai para o lixo
+    sys.stdout = sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
 PASTA = Path(__file__).resolve().parent
 os.chdir(PASTA)
 sys.path.insert(0, str(PASTA))
@@ -71,14 +76,17 @@ def iniciar_com_windows(ligar):
     if not ligar:
         arq.unlink(missing_ok=True)
         return True, "O ConfereVídeo não abre mais sozinho com o Windows."
-    pyw = Path(sys.executable).with_name("pythonw.exe")
-    if not pyw.exists():
-        pyw = Path(sys.executable)
+    if CONGELADO:
+        rodar = f'sh.Run """{sys.executable}"" --auto", 0, False\r\n'
+    else:
+        pyw = Path(sys.executable).with_name("pythonw.exe")
+        if not pyw.exists():
+            pyw = Path(sys.executable)
+        rodar = f'sh.Run """{pyw}"" ""{PASTA / "app.py"}"" --auto", 0, False\r\n'
     vbs = ("' Abre o ConfereVideo ja monitorando (criado pela tela Automacao)\r\n"
            "WScript.Sleep 20000  ' espera a rede e a camera subirem\r\n"
            'Set sh = CreateObject("WScript.Shell")\r\n'
-           f'sh.CurrentDirectory = "{PASTA}"\r\n'
-           f'sh.Run """{pyw}"" ""{PASTA / "app.py"}"" --auto", 0, False\r\n')
+           f'sh.CurrentDirectory = "{PASTA}"\r\n' + rodar)
     p.mkdir(parents=True, exist_ok=True)
     arq.write_text(vbs, encoding="utf-16")  # UTF-16 com BOM: o Windows lê caminhos com acento
     return True, "Pronto: o ConfereVídeo vai abrir sozinho, já com a câmera ligada, sempre que o PC ligar."
@@ -481,7 +489,8 @@ class PaginaAreas(ttk.Frame):
         self.status.set("Janela de marcação aberta: clique nos cantos, ENTER salva.")
 
         def t():
-            subprocess.run([sys.executable, str(PASTA / "marcar_areas.py"), str(fonte), "--areas", str(PASTA / "areas.yaml")])
+            marcar = [sys.executable, "--marcar-areas"] if CONGELADO else [sys.executable, str(PASTA / "marcar_areas.py")]
+            subprocess.run(marcar + [str(fonte), "--areas", str(PASTA / "areas.yaml")])
             self.app.q.put(("areas_ok", None))
         threading.Thread(target=t, daemon=True).start()
 
@@ -1225,7 +1234,34 @@ def falha_txt(oque, e):
     return f"{oque}: {str(e)[:150] or type(e).__name__}. Detalhes no arquivo erro.log."
 
 
-if __name__ == "__main__":
+def testar_demo(saida):
+    """ConfereVideo.exe --testar-demo resultado.json: confere a instalação sem abrir a janela.
+    Roda a IA no vídeo de demonstração e salva o resumo (itens, erros, recortes, PDF) em JSON."""
+    import tempfile
+    cfg = motor.carregar_config()
+    cfg["pasta_resultados"] = tempfile.mkdtemp(prefix="conferevideo_teste_")
+    cfg["m365"]["ativo"] = False
+    r = {"ok": False}
+    try:
+        s = motor.analisar_videos([PASTA / "demo" / "demo_esteira_cigarros.mp4"], cfg,
+                                  motor.ler_yaml(PASTA / "demo" / "areas_demo.yaml"), motor.carregar_modelo(cfg),
+                                  ev=lambda tipo, d=None: None)
+        r.update(ok=True, itens=s.ciclos, sem_erro=s.ok, erros=[e["tipo"] for e in s.erros],
+                 recortes=len(list((s.pasta / "recortes").glob("*.mp4"))),
+                 pdf=(s.pasta / "relatorio.pdf").exists(), pasta=str(s.pasta))
+    except Exception:
+        r["falha"] = traceback.format_exc()
+    Path(saida).write_text(json.dumps(r, ensure_ascii=False, indent=1), encoding="utf-8")
+    return 0 if r["ok"] else 1
+
+
+if __name__ == "__main__" and sys.argv[1:2] == ["--marcar-areas"]:  # ConfereVideo.exe marca as áreas
+    import marcar_areas
+    sys.argv = [sys.argv[0]] + sys.argv[2:]
+    marcar_areas.main()
+elif __name__ == "__main__" and sys.argv[1:2] == ["--testar-demo"]:
+    sys.exit(testar_demo(sys.argv[2] if len(sys.argv) > 2 else str(PASTA / "teste_demo.json")))
+elif __name__ == "__main__":
     try:
         app = App()
         app.report_callback_exception = lambda *a: motor.registrar_erro("".join(traceback.format_exception(*a)))

@@ -11,3 +11,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Montagem do instalador (instalador\montar.ps1)
+build/
+dist/
+*.spec
