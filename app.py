@@ -10,8 +10,8 @@ import sys
 import threading
 import time
 import tkinter as tk
+import traceback
 import webbrowser
-from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
@@ -329,13 +329,17 @@ class PaginaAoVivo(ttk.Frame):
         self.app.ocupado = "vivo"
 
         def t():
-            modelo = self.app.modelo()
-            self.trab = motor.AoVivo(fonte, cfg, areas, modelo,
-                                     ev=lambda tp, d=None: self.app.q.put(("vivo_" + tp, d)),
-                                     preview=lambda img: self.app.novo_preview("vivo", img), modo=modo,
-                                     integracao=self.app.integ)
-            self.trab.start()
-            self.app.q.put(("vivo_iniciado", self.trab))
+            try:
+                modelo = self.app.modelo()
+                self.trab = motor.AoVivo(fonte, cfg, areas, modelo,
+                                         ev=lambda tp, d=None: self.app.q.put(("vivo_" + tp, d)),
+                                         preview=lambda img: self.app.novo_preview("vivo", img), modo=modo,
+                                         integracao=self.app.integ)
+                self.trab.start()
+                self.app.q.put(("vivo_iniciado", self.trab))
+            except Exception as e:
+                motor.registrar_erro(traceback.format_exc())
+                self.app.q.put(("vivo_falha", falha_txt("Não consegui ligar a conferência", e)))
         threading.Thread(target=t, daemon=True).start()
 
     def parar(self):
@@ -415,12 +419,16 @@ class PaginaVideos(ttk.Frame):
         cfg = dict(self.app.cfg)
 
         def t():
-            modelo = self.app.modelo()
-            s = motor.analisar_videos([Path(v) for v in self.videos], cfg, self.app.areas(), modelo,
-                                      ev=lambda tp, d=None: self.app.q.put(("vid_" + tp, d)),
-                                      parar=self.parar_ev, preview=lambda img: self.app.novo_preview("vid", img),
-                                      integracao=self.app.integ)
-            self.app.q.put(("vid_sessao", s))
+            try:
+                modelo = self.app.modelo()
+                s = motor.analisar_videos([Path(v) for v in self.videos], cfg, self.app.areas(), modelo,
+                                          ev=lambda tp, d=None: self.app.q.put(("vid_" + tp, d)),
+                                          parar=self.parar_ev, preview=lambda img: self.app.novo_preview("vid", img),
+                                          integracao=self.app.integ)
+                self.app.q.put(("vid_sessao", s))
+            except Exception as e:
+                motor.registrar_erro(traceback.format_exc())
+                self.app.q.put(("vid_falha", falha_txt("A análise dos vídeos parou", e)))
         threading.Thread(target=t, daemon=True).start()
 
     def parar(self):
@@ -1155,6 +1163,14 @@ class App(tk.Tk):
             pv.bt_demo.configure(state="normal")
             pv.status.set("Parado. Relatório salvo.")
             pv.res.bt_rel.configure(state="normal")
+        elif tipo == "vivo_falha":
+            self.ocupado = None
+            pv.trab = None
+            pv.bt_ini.configure(state="normal")
+            pv.bt_par.configure(state="disabled")
+            pv.bt_demo.configure(state="normal")
+            pv.status.set(d)
+            self.bell()
         elif tipo == "vid_log":
             pd.status.set(d.strip())
         elif tipo == "vid_progresso":
@@ -1165,6 +1181,12 @@ class App(tk.Tk):
             pd.res.erro(d["reg"], pd.res.pasta)
         elif tipo == "vid_sessao":
             pd.res.pasta = d.pasta
+        elif tipo == "vid_falha":
+            self.ocupado = None
+            pd.bt_ini.configure(state="normal")
+            pd.bt_par.configure(state="disabled")
+            pd.status.set(d)
+            self.bell()
         elif tipo == "vid_fim":
             self.ocupado = None
             pd.res.pasta = Path(d).parent
@@ -1198,22 +1220,18 @@ class App(tk.Tk):
         self.destroy()
 
 
-def _registrar_erro(texto):
-    try:
-        with open(PASTA / "erro.log", "a", encoding="utf-8") as f:
-            f.write(f"\n[{datetime.now():%d/%m/%Y %H:%M:%S}]\n{texto}\n")
-    except Exception:
-        pass
+def falha_txt(oque, e):
+    """Mensagem curta para a barra de status quando algo para por erro."""
+    return f"{oque}: {str(e)[:150] or type(e).__name__}. Detalhes no arquivo erro.log."
 
 
 if __name__ == "__main__":
-    import traceback
     try:
         app = App()
-        app.report_callback_exception = lambda *a: _registrar_erro("".join(traceback.format_exception(*a)))
+        app.report_callback_exception = lambda *a: motor.registrar_erro("".join(traceback.format_exception(*a)))
         app.mainloop()
     except Exception:
-        _registrar_erro(traceback.format_exc())
+        motor.registrar_erro(traceback.format_exc())
         try:
             messagebox.showerror("ConfereVídeo", "O programa encontrou um erro e foi fechado.\n"
                                  "Detalhes no arquivo erro.log, na pasta do programa.")

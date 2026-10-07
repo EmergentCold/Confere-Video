@@ -12,6 +12,7 @@ Usado pelo programa com janela (app.py) e pela linha de comando:
 from __future__ import annotations
 
 import base64
+import bisect
 import csv
 import json
 import os
@@ -23,6 +24,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 import wave
 from collections import deque
 from datetime import datetime, timedelta, timezone
@@ -39,6 +41,7 @@ os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
 PASTA = Path(__file__).resolve().parent
 EXTENSOES = {".mp4", ".mov", ".avi", ".mkv", ".m4v", ".3gp"}
 NOME_PRODUTO = "ConfereVídeo"
+FALHAS_SEGUIDAS_MAX = 40  # quadros seguidos com erro (~5 s) antes de desistir da câmera ao vivo
 
 TIPOS = {
     "sem_leitor": "Colocou na caixa sem passar no leitor",
@@ -129,6 +132,15 @@ def ffmpeg_exe():
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
         return shutil.which("ffmpeg") or "ffmpeg"
+
+
+def registrar_erro(texto):
+    """Anota no erro.log da pasta do programa (ele roda sem janela de comando, então é ali que o erro aparece)."""
+    try:
+        with open(PASTA / "erro.log", "a", encoding="utf-8") as f:
+            f.write(f"\n[{datetime.now():%d/%m/%Y %H:%M:%S}]\n{texto}\n")
+    except Exception:
+        pass
 
 
 def _run(cmd):
@@ -337,6 +349,14 @@ def bipes_do_arquivo(audio, cfg):
     return bipes, freq
 
 
+def esquecer_bipes(bipes, antes_de):
+    """Apaga da lista (em ordem de tempo) os bipes anteriores a 'antes_de', sem trocar o objeto:
+    o Ciclo lê a mesma lista enquanto o microfone escreve nela."""
+    k = bisect.bisect_left(bipes, antes_de)
+    if k:
+        del bipes[:k]
+
+
 class MicrofoneAoVivo:
     """Escuta o microfone do PC, detecta bipes e guarda os últimos segundos de áudio para os recortes."""
 
@@ -419,6 +439,8 @@ class MicrofoneAoVivo:
                     self.aviso(f"Microfone: bipe em ~{self.freq:.0f} Hz")
                 continue
             self.bipes += self.det.processar(S, t0)
+            # ao vivo o programa fica dias ligado: só interessam os bipes do item atual
+            esquecer_bipes(self.bipes, t - self.cfg["tempo_max_ciclo_seg"] - 60)
 
     def audio_entre(self, a, b):
         partes = []
@@ -991,6 +1013,7 @@ class AoVivo(threading.Thread):
         self.cam_alertada = False
         self._fim_turno = None
         self._base = (0, 0)
+        self._pend = []       # erros esperando os segundos "depois" para gravar o recorte
 
     @property
     def auto(self):
@@ -1129,10 +1152,71 @@ class AoVivo(threading.Thread):
             if self.integracao:
                 self.integracao.alerta(self.cfg, "Câmera voltou", txt, "good")
 
+    def _quadro(self, an, q, tq, pend):
+        """Analisa um quadro da câmera: marca erros, agenda os recortes e atualiza a tela."""
+        cfg = self.cfg
+        an._ultimo_t = tq
+        rot = f"{cfg['posto']} | {datetime.fromtimestamp(tq):%d/%m/%Y %H:%M:%S}"
+        img, erros = an.processar(q, tq, rot)
+        self.marc.append((tq, jpg(img, 960, 78)))
+        while self.marc and tq - self.marc[0][0] > cfg["recorte_max_seg"] + 8:
+            self.marc.popleft()
+        s = self.sessao
+        for e in erros:
+            reg = s.registrar(e, datetime.fromtimestamp(tq), "ao vivo")
+            s.foto(reg, img)
+            ini = max(e["t_ini"] - cfg["segundos_antes"], tq - cfg["recorte_max_seg"])
+            fim = tq + cfg["segundos_depois"]
+            reg["duracao"] = round(fim - ini)
+            with s.lock:
+                s.gravando += 1
+            pend.append((reg, ini, fim, s))
+            self.ev("erro", {"reg": reg, "img": img, "pasta": str(s.pasta)})
+        s.ciclos, s.ok = an.ciclo.n_ciclos - self._base[0], an.ciclo.n_ok - self._base[1]
+        s.marcar_periodo(datetime.fromtimestamp(tq))
+        for p in [p for p in pend if tq >= p[2]]:
+            pend.remove(p)
+            self._gravar(*p)
+        if self.preview:
+            self.preview(img)
+        self.ev("contagem", (s.ciclos, len(s.erros), s.ok))
+        if time.time() - self._ult_salvo > 60:
+            self._ult_salvo = time.time()
+            s.salvar()
+
     def _limpeza(self):
         threading.Thread(target=limpar_antigos, args=(self.cfg, lambda m: self.ev("log", m)), daemon=True).start()
 
     def run(self):
+        try:
+            self._executar()
+        except Exception:
+            self._parou_com_erro(traceback.format_exc())
+
+    def _parou_com_erro(self, detalhes):
+        """A conferência parou sozinha: salva o que já foi visto e avisa (tela, Teams e e-mail)."""
+        registrar_erro(detalhes)
+        self.parar_ev.set()
+        if self.mic:
+            self.mic.parar()
+        manter_acordado(False)
+        rel = ""
+        try:
+            for p in self._pend:  # erros já marcados: grava os recortes com o que está na memória
+                self._gravar(*p)
+            self._pend = []
+            if self.sessao:
+                rel = self._fechar_sessao(self.sessao, final=True)
+        except Exception:
+            registrar_erro(traceback.format_exc())
+        self.ev("fim", str(rel))
+        txt = (f"A conferência do {self.cfg.get('posto', 'posto')} parou por um erro inesperado. "
+               "Abra o ConfereVídeo e ligue a câmera de novo. Detalhes no arquivo erro.log.")
+        self.ev("alerta", txt)
+        if self.integracao and not self.eh_arquivo:
+            self.integracao.alerta(self.cfg, "Conferência parou", txt, "attention")
+
+    def _executar(self):
         cfg = self.cfg
         if self.auto.get("manter_pc_acordado", True) and not self.eh_arquivo:
             manter_acordado(True)
@@ -1166,8 +1250,8 @@ class AoVivo(threading.Thread):
         self.t_ultimo_quadro = time.time()
         threading.Thread(target=self._leitor, daemon=True).start()
         intervalo = 1.0 / cfg["analisar_por_segundo"]
-        pend, ult_cont = [], -1
-        ult_salvo = ult_vigia = time.time()
+        pend, ult_cont, falhas, ult_log_falha = self._pend, -1, 0, 0.0
+        self._ult_salvo = ult_vigia = time.time()
         while not self.parar_ev.is_set():
             if time.time() - ult_vigia >= 1:
                 ult_vigia = time.time()
@@ -1192,39 +1276,24 @@ class AoVivo(threading.Thread):
                 limite = tq - self.t0_arquivo
                 while self._bipes_arquivo and self._bipes_arquivo[0] <= limite:
                     bipes.append(self.t0_arquivo + self._bipes_arquivo.pop(0))
-            an._ultimo_t = tq
-            rot = f"{cfg['posto']} | {datetime.fromtimestamp(tq):%d/%m/%Y %H:%M:%S}"
-            img, erros = an.processar(q, tq, rot)
-            self.marc.append((tq, jpg(img, 960, 78)))
-            while self.marc and tq - self.marc[0][0] > cfg["recorte_max_seg"] + 8:
-                self.marc.popleft()
-            s = self.sessao
-            for e in erros:
-                reg = s.registrar(e, datetime.fromtimestamp(tq), "ao vivo")
-                s.foto(reg, img)
-                ini = max(e["t_ini"] - cfg["segundos_antes"], tq - cfg["recorte_max_seg"])
-                fim = tq + cfg["segundos_depois"]
-                reg["duracao"] = round(fim - ini)
-                with s.lock:
-                    s.gravando += 1
-                pend.append((reg, ini, fim, s))
-                self.ev("erro", {"reg": reg, "img": img, "pasta": str(s.pasta)})
-            s.ciclos, s.ok = an.ciclo.n_ciclos - self._base[0], an.ciclo.n_ok - self._base[1]
-            s.marcar_periodo(datetime.fromtimestamp(tq))
-            for p in [p for p in pend if tq >= p[2]]:
-                pend.remove(p)
-                self._gravar(*p)
-            if self.preview:
-                self.preview(img)
-            self.ev("contagem", (s.ciclos, len(s.erros), s.ok))
-            if time.time() - ult_salvo > 60:
-                ult_salvo = time.time()
-                s.salvar()
+            # um quadro com problema não pode desligar a conferência do turno;
+            # só desiste (e avisa) se a falha se repetir por vários segundos seguidos
+            try:
+                self._quadro(an, q, tq, pend)
+                falhas = 0
+            except Exception:
+                falhas += 1
+                if time.time() - ult_log_falha > 600:  # no máximo 1 registro a cada 10 min no erro.log
+                    ult_log_falha = time.time()
+                    registrar_erro("Falha ao analisar um quadro (a conferência continua):\n" + traceback.format_exc())
+                if falhas >= FALHAS_SEGUIDAS_MAX:
+                    raise
             espera = intervalo - (time.time() - t0)
             if espera > 0:
                 time.sleep(espera)
         for p in pend:
             self._gravar(*p)
+        self._pend = []
         if self.mic:
             self.mic.parar()
         rel = self._fechar_sessao(self.sessao, final=True)

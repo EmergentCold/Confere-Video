@@ -34,3 +34,15 @@ python motor.py --ao-vivo 0        # câmera nº 0
 python marcar_areas.py video.mp4   # marca as áreas
 python diagnostico.py              # verifica o PC
 ```
+
+## Testes
+
+Os testes conferem as regras de erro, a detecção do bipe, os turnos, a limpeza automática e a
+câmera ao vivo (tocando o vídeo de demonstração com uma IA de mentira). Não precisam de câmera nem da IA.
+
+```
+pip install numpy opencv-python-headless pyyaml pillow fpdf2 pytest
+python -m pytest -q tests
+```
+
+Eles também rodam sozinhos no GitHub (aba **Actions**) a cada envio.
