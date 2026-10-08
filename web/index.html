@@ -451,7 +451,7 @@ let sessao = null;
 async function carregarIA(aviso) {
   if (sessao) return sessao;
   ort.env.wasm.numThreads = 1;
-  ort.env.wasm.wasmPaths = { mjs: new URL("ort/ort-wasm-simd-threaded.mjs", location.href).href, wasm: new URL("ort/ort-wasm-simd-threaded.wasm", location.href).href };
+  ort.env.wasm.wasmPaths = { mjs: new URL("ort/ort-wasm-simd-threaded.mjs", document.baseURI).href, wasm: new URL("ort/ort-wasm-simd-threaded.wasm", document.baseURI).href };
   aviso("Baixando a IA (11 MB)…");
   // no aplicativo a IA vai como arquivo (.onnx); na página web, como texto (base64), o formato que ela pode receber
   let bytes, r = await fetch("yolo11n-pose.onnx").catch(() => null);
@@ -580,9 +580,11 @@ async function abrirDemo() {  // abre a demonstração; se um formato não tocar
       const r = await fetch(arq); if (!r.ok) throw new Error("não consegui baixar o vídeo de demonstração (" + r.status + ")");
       const bytes = await r.arrayBuffer();
       const f = { nome: "demo_esteira_cigarros.mp4", url: URL.createObjectURL(new Blob([bytes], { type: arq.endsWith(".mp4") ? "video/mp4" : "video/webm" })), demo: true, bytes };
-      await abrirVideo(f.url);
+      try { await abrirVideo(f.url); }
+      catch (e) { diag("demo_blob_falhou", { arq, erro: String(e.message || e) }); f.url = new URL(arq, document.baseURI).href; await abrirVideo(f.url); }
+      diag("demo_aberta", { arq, blob: f.url.startsWith("blob:") });
       return (demoCache = f);
-    } catch (e) { ultimo = e; }
+    } catch (e) { ultimo = e; diag("demo_falhou", { arq, erro: String(e.message || e) }); }
   }
   throw ultimo;
 }
@@ -657,8 +659,10 @@ async function conferir() {
   let tela_acesa = null; try { tela_acesa = await navigator.wakeLock?.request("screen"); } catch (e) {}  // celular: não apagar a tela no meio
   $("lista").innerHTML = '<div class="vazio" id="lista-vazia">Nenhum erro até agora.</div>'; atualizarKpis(0, 0, 0);
   const cfg = JSON.parse(JSON.stringify(CFG));
+  let etapa = "carregar a IA";
   try {
     await carregarIA((m) => status(`<b>${m}</b>`));
+    etapa = "ouvir o som do vídeo";
     let bipes = null;
     if (cfg.usar_som_do_bipe && (cfg.verificar.sem_bipe || cfg.verificar.bipe_duplo)) {
       status("<b>Ouvindo o som do vídeo…</b>");
@@ -667,6 +671,7 @@ async function conferir() {
       if (r.bipes.length >= 3) { bipes = r.bipes; resultadoSom = `bipe em ~${Math.round(r.freq)} Hz, ${r.bipes.length} bipes ouvidos`; }
       else resultadoSom = "quase nenhum bipe ouvido: verificação de bipe desligada neste vídeo";
     } else resultadoSom = "som do bipe desligado nas configurações";
+    etapa = "analisar os quadros";
     const an = new Analisador(cfg, areasAtuais, bipes);
     const fps = 30, passo = Math.max(1, Math.round(fps / cfg.analisar_por_segundo)), w = video.videoWidth, h = video.videoHeight;
     const total = Math.floor(video.duration * fps), regs = [], buf = [], pend = [];
@@ -696,11 +701,13 @@ async function conferir() {
     for (const reg of pend) reg.quadros = buf.filter(([tt]) => reg.ini <= tt && tt <= reg.fim).map(([, j]) => j);
     resultado = { nome: fonte.nome, demo: fonte.demo, itens: an.ciclo.n_ciclos, ok: an.ciclo.n_ok, erros: regs, som: resultadoSom, duracao: video.duration, interrompido: parar };
     window.__resultado = { itens: resultado.itens, ok: resultado.ok, erros: regs.map(r => r.tipo), som: resultadoSom };
+    diag("conferencia_ok", { ...window.__resultado, segundos: Math.round((performance.now() - t0) / 1000), interrompido: parar });
     status(`<b>${parar ? "Parado" : "Concluído"}.</b> ${resultado.itens} itens conferidos, ${regs.length} com erro. Som: ${resultadoSom}.`);
     montarRelatorio();
   } catch (e) {
-    status(`<b>Não consegui conferir:</b> ${e.message || e}. Recarregue a página e tente de novo.`);
+    status(`<b>Não consegui ${etapa}:</b> ${e.message || e}. O erro foi registrado para o suporte.`);
     window.__resultado = { falha: String(e && e.stack || e) };
+    diag("conferencia_falhou", { etapa, erro: String(e && e.message || e), pilha: String(e && e.stack || "").slice(0, 1500) });
   } finally {
     rodando = false; $("bt-conferir").disabled = false; $("bt-parar").disabled = true; $("lb-arquivo").hidden = $("lb-gravar").hidden = false; $("bt-demo").hidden = fonte.demo;
     try { await tela_acesa?.release(); } catch (e) {}
@@ -842,8 +849,35 @@ $("rel-copiar").onclick = async () => {
   try { await navigator.clipboard.writeText(txt.replace(/^﻿/, "")); $("rel-msg").textContent = "Copiado. Cole no Excel."; } catch (e) { $("rel-msg").textContent = "Não consegui copiar neste navegador."; }
 };
 
+// ---- diagnóstico: o que este aparelho permite, registrado para o suporte conferir ----
+const diagFila = [];
+let diagDb;  // undefined = ainda procurando; null = sem registro neste visualizador
+async function diag(evento, dados = {}) {
+  const reg = { evento, quando: new Date().toISOString(), ...dados };
+  try { console.log("[diagnóstico]", JSON.stringify(reg)); } catch (e) {}
+  if (diagDb === undefined) { diagFila.push(reg); return; }
+  if (diagDb) { try { await diagDb.collection("diagnostico").add({ ...reg, sessao: SESSAO }); } catch (e) {} }
+}
+const SESSAO = Math.random().toString(36).slice(2, 10);
+async function autoteste() {
+  const r = { agente: navigator.userAgent, app: !!window.Capacitor, base: document.baseURI.slice(0, 120), local: String(location.href).slice(0, 120),
+    memoria_gb: navigator.deviceMemory || null, nucleos: navigator.hardwareConcurrency || null, mp4: video.canPlayType('video/mp4; codecs="avc1.640028"'), webm: video.canPlayType('video/webm; codecs="vp9"') };
+  try { new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); r.wasm = "ok"; } catch (e) { r.wasm = String(e.message || e).slice(0, 200); }
+  try { const x = await fetch(new URL("ort/ort-wasm-simd-threaded.wasm", document.baseURI), { method: "HEAD" }); r.arquivo_wasm = x.status; } catch (e) { r.arquivo_wasm = String(e.message || e).slice(0, 200); }
+  try { r.audio = typeof OfflineAudioContext === "function" ? "ok" : "sem OfflineAudioContext"; } catch (e) { r.audio = String(e); }
+  diag("autoteste", r);
+  if (r.wasm !== "ok") status("<b>Este navegador bloqueou a IA</b> (WebAssembly). Use o aplicativo Android ou o programa do PC.");
+}
+window.addEventListener("error", (ev) => diag("erro_js", { msg: String(ev.message).slice(0, 300), arq: String(ev.filename || "").slice(-80), linha: ev.lineno }));
+window.addEventListener("unhandledrejection", (ev) => diag("promessa_rejeitada", { msg: String(ev.reason && ev.reason.message || ev.reason).slice(0, 300) }));
+(async () => {
+  try { diagDb = window.claude?.use ? await window.claude.use("db") : null; } catch (e) { diagDb = null; }
+  const fila = diagFila.splice(0); for (const reg of fila) { diagDb && diagDb.collection("diagnostico").add({ ...reg, sessao: SESSAO }).catch(() => {}); }
+})();
+
 // ---- início ----
 montarTiposArea();
+autoteste();
 (async () => {
   try { fonte = await abrirDemo(); await mostrarCapa(); }
   catch (e) { status(`<b>Não consegui abrir o vídeo de demonstração:</b> ${e.message}.`); }
