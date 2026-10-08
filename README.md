@@ -45,6 +45,9 @@ python diagnostico.py              # verifica o PC
 
 ## Versão web e aplicativo Android
 
+- **Arquivo único** (`ConfereVideo.html`, em [Releases](../../releases)): o sistema inteiro em um
+  arquivo de ~21 MB, para baixar, anexar e abrir com dois cliques no Chrome ou no Edge, sem
+  instalar nada. Montado por `web/montar_arquivo_unico.py` (workflow **Arquivo único**).
 - `web/index.html`: o ConfereVídeo no navegador (confere vídeos gravados, sem instalar nada). Usa a
   mesma IA (`web/yolo11n-pose.onnx`, o `yolo11n-pose.pt` exportado para ONNX) e as mesmas regras do
   `motor.py`, reescritas em JavaScript, e chega ao mesmo resultado na demonstração.

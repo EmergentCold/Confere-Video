@@ -448,14 +448,28 @@ class Ciclo {
 // IA de pose (YOLO11n-pose, a mesma do programa) rodando no navegador
 // ======================================================================
 let sessao = null;
+// versão em arquivo único (ConfereVideo.html): a IA, o motor e a demonstração vão dentro da própria página,
+// em blocos <script type="text/plain" id="emb-..."> (base64, comprimido com gzip quando data-gz)
+async function embutido(id) {
+  const el = document.getElementById(id); if (!el) return null;
+  const bin = atob(el.textContent.replace(/\s+/g, "")); let bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  if (el.hasAttribute("data-gz")) bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  return bytes;
+}
 async function carregarIA(aviso) {
   if (sessao) return sessao;
   ort.env.wasm.numThreads = 1;
-  ort.env.wasm.wasmPaths = { mjs: new URL("ort/ort-wasm-simd-threaded.mjs", document.baseURI).href, wasm: new URL("ort/ort-wasm-simd-threaded.wasm", document.baseURI).href };
-  aviso("Baixando a IA (11 MB)…");
-  // no aplicativo a IA vai como arquivo (.onnx); na página web, como texto (base64), o formato que ela pode receber
-  let bytes, r = await fetch("yolo11n-pose.onnx").catch(() => null);
-  if (r && r.ok) bytes = new Uint8Array(await r.arrayBuffer());
+  const wasmEmb = await embutido("emb-wasm");
+  if (wasmEmb) {
+    ort.env.wasm.wasmBinary = wasmEmb.buffer;
+    ort.env.wasm.wasmPaths = { mjs: URL.createObjectURL(new Blob([await embutido("emb-mjs")], { type: "text/javascript" })) };
+  } else ort.env.wasm.wasmPaths = { mjs: new URL("ort/ort-wasm-simd-threaded.mjs", document.baseURI).href, wasm: new URL("ort/ort-wasm-simd-threaded.wasm", document.baseURI).href };
+  aviso("Carregando a IA…");
+  // arquivo único: dentro da página; aplicativo: arquivo .onnx; link web: texto (base64), o formato que ele pode receber
+  let bytes = await embutido("emb-modelo"), r = bytes ? null : await fetch("yolo11n-pose.onnx").catch(() => null);
+  if (bytes) {}
+  else if (r && r.ok) bytes = new Uint8Array(await r.arrayBuffer());
   else {
     r = await fetch("yolo11n-pose.onnx.txt"); if (!r.ok) throw new Error("não consegui baixar a IA (" + r.status + ")");
     const bin = atob((await r.text()).trim()); bytes = new Uint8Array(bin.length);
@@ -574,6 +588,12 @@ const FORMATOS_DEMO = (window.Capacitor || !video.canPlayType('video/mp4; codecs
 let demoCache = null;
 async function abrirDemo() {  // abre a demonstração; se um formato não tocar neste aparelho, tenta o outro
   if (demoCache) { await abrirVideo(demoCache.url); return demoCache; }
+  const emb = await embutido("emb-demo");
+  if (emb) {
+    const f = { nome: "demo_esteira_cigarros.mp4", url: URL.createObjectURL(new Blob([emb], { type: document.getElementById("emb-demo").dataset.tipo || "video/mp4" })), demo: true, bytes: emb.buffer };
+    await abrirVideo(f.url); diag("demo_aberta", { arq: "embutida", blob: true });
+    return (demoCache = f);
+  }
   let ultimo = null;
   for (const arq of FORMATOS_DEMO) {
     try {
@@ -863,7 +883,8 @@ async function autoteste() {
   const r = { agente: navigator.userAgent, app: !!window.Capacitor, base: document.baseURI.slice(0, 120), local: String(location.href).slice(0, 120),
     memoria_gb: navigator.deviceMemory || null, nucleos: navigator.hardwareConcurrency || null, mp4: video.canPlayType('video/mp4; codecs="avc1.640028"'), webm: video.canPlayType('video/webm; codecs="vp9"') };
   try { new WebAssembly.Module(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0])); r.wasm = "ok"; } catch (e) { r.wasm = String(e.message || e).slice(0, 200); }
-  try { const x = await fetch(new URL("ort/ort-wasm-simd-threaded.wasm", document.baseURI), { method: "HEAD" }); r.arquivo_wasm = x.status; } catch (e) { r.arquivo_wasm = String(e.message || e).slice(0, 200); }
+  if (document.getElementById("emb-wasm")) r.arquivo_wasm = "embutido";
+  else try { const x = await fetch(new URL("ort/ort-wasm-simd-threaded.wasm", document.baseURI), { method: "HEAD" }); r.arquivo_wasm = x.status; } catch (e) { r.arquivo_wasm = String(e.message || e).slice(0, 200); }
   try { r.audio = typeof OfflineAudioContext === "function" ? "ok" : "sem OfflineAudioContext"; } catch (e) { r.audio = String(e); }
   diag("autoteste", r);
   if (r.wasm !== "ok") status("<b>Este navegador bloqueou a IA</b> (WebAssembly). Use o aplicativo Android ou o programa do PC.");

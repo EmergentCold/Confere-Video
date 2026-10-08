@@ -1,0 +1,51 @@
+name: Arquivo único
+
+# Monta o ConfereVideo.html (o sistema inteiro em um arquivo, para baixar, anexar e abrir com dois
+# cliques), abre direto do disco num navegador, confere a demonstração e publica em Releases.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "web/**"
+      - "demo/**"
+      - celular/package.json
+      - celular/package-lock.json
+      - .github/workflows/arquivo-unico.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arquivo-unico-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  html:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Montar o ConfereVideo.html
+        run: |
+          (cd celular && npm ci)
+          python3 web/montar_arquivo_unico.py celular/node_modules/onnxruntime-web/dist dist/ConfereVideo.html
+          # cópia só para o teste: o Chromium do teste não toca MP4, então a demonstração vai em WebM
+          python3 web/montar_arquivo_unico.py celular/node_modules/onnxruntime-web/dist teste/ConfereVideo_webm.html --demo-webm
+      - name: Abrir do disco e conferir a demonstração
+        run: |
+          npm install --no-save --prefix teste playwright@1
+          npx --prefix teste playwright install --with-deps chromium
+          NODE_PATH=teste/node_modules node web/testar_arquivo_unico.js "$PWD/teste/ConfereVideo_webm.html" teste/tela.png
+      - name: Publicar em Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="arquivo-unico-$(echo "${{ github.ref_name }}" | sed 's/[^A-Za-z0-9._-]/-/g')"
+          gh release delete "$tag" --cleanup-tag --yes 2>/dev/null || echo "Sem versão anterior para trocar."
+          gh release create "$tag" dist/ConfereVideo.html --target "${{ github.sha }}" --prerelease \
+            --title "ConfereVídeo 1.0.${{ github.run_number }} – arquivo único (${{ github.ref_name }})" \
+            --notes "O ConfereVídeo inteiro em um arquivo (ConfereVideo.html): baixe, anexe no e-mail ou no Teams e abra com dois cliques no Chrome ou no Edge. Não precisa instalar nada nem de internet; a IA e o vídeo de demonstração vão dentro. Confere vídeos gravados; a câmera ao vivo fica no programa instalado. Antes de publicar, o arquivo foi aberto direto do disco e conferiu a demonstração com o mesmo resultado do programa."
