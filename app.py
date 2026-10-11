@@ -305,13 +305,16 @@ class PaginaAoVivo(ttk.Frame):
         threading.Thread(target=t, daemon=True).start()
 
     def demonstracao(self):
-        """Roda o sistema no vídeo de demonstração (posto de cigarros), com as áreas da demo.
-        Não altera as áreas nem a câmera configuradas."""
+        """Roda o sistema no vídeo de demonstração (estação de picking com 3 níveis; sem ele, o posto
+        de cigarros antigo), com as áreas da demo. Não altera as áreas nem a câmera configuradas."""
         if self.app.ocupado:
             messagebox.showinfo("ConfereVídeo", "Já existe uma análise em andamento. Pare-a antes.")
             return
-        video = PASTA / "demo" / "demo_esteira_cigarros.mp4"
-        areas = motor.ler_yaml(PASTA / "demo" / "areas_demo.yaml")
+        video = PASTA / "demo" / "demo_esteira_3_niveis.mp4"
+        areas = motor.ler_yaml(PASTA / "demo" / "areas_demo_3_niveis.yaml")
+        if not video.exists() or not areas:
+            video = PASTA / "demo" / "demo_esteira_cigarros.mp4"
+            areas = motor.ler_yaml(PASTA / "demo" / "areas_demo.yaml")
         if not video.exists() or not areas:
             messagebox.showwarning("ConfereVídeo", "O vídeo de demonstração não está na pasta 'demo'.")
             return

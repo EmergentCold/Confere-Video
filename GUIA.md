@@ -23,7 +23,7 @@ No fim da instalação o programa **verifica o PC** sozinho (componentes, IA, c�
 
 ## 2. Ver funcionando antes de instalar a câmera
 
-Tela **Câmera ao vivo** → **▶ Ver demonstração**. O sistema roda num vídeo de demonstração de um posto de separação de cigarros e mostra os erros sendo gravados na hora. A demonstração usa as próprias áreas e não mexe nas suas configurações. O resultado aparece em **Relatórios** como "Demonstração".
+Tela **Câmera ao vivo** → **▶ Ver demonstração**. O sistema roda num vídeo ilustrativo de uma estação de picking com prateleira de 3 níveis (ombro, cintura e abaixo da cintura), esteira de roletes e leitor no braço do monitor, e mostra os erros sendo gravados na hora. No começo, o operador mostra o QR do crachá (simulado) para a câmera; depois separa 12 itens, com um erro de cada tipo encenado. A legenda embaixo diz o que foi encenado, para comparar com o que a IA encontrou. A demonstração usa as próprias áreas e não mexe nas suas configurações. O resultado aparece em **Relatórios** como "Demonstração".
 
 ## 3. Marcar as áreas do posto (uma vez por posição de câmera)
 
