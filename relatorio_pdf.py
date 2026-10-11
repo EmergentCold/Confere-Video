@@ -236,10 +236,19 @@ def gerar_pdf(r: dict, pasta, saida, logo: str | None = None) -> Path:
             pdf.set_xy(x, y + 8)
             pdf.cell(cols[4][1], 5, "" if e.get("bipes") is None else str(e["bipes"]), align="C")
             x += cols[4][1]
-            pdf.set_xy(x, y + 8)
+            pdf.set_xy(x, y + 4)
             pdf.set_font("Helvetica", "", 7)
             pdf.set_text_color(*MUTED)
-            pdf.cell(cols[5][1], 5, _t(e.get("id", "")))
+            pdf.cell(cols[5][1], 4, _t(e.get("id", "")))
+            if e.get("confianca") is not None:
+                pdf.set_xy(x, y + 8.5)
+                pdf.set_text_color(*(BAD if e.get("baixa_confianca") else INK))
+                pdf.cell(cols[5][1], 4, _t(f"certeza {e['confianca']}%" + (" (baixa: sem alerta)" if e.get("baixa_confianca") else "")))
+            if e.get("operador"):
+                pdf.set_xy(x, y + 13)
+                pdf.set_text_color(*INK)
+                pdf.cell(cols[5][1], 4, _t(f"operador: {e['operador']}"[:34]))
+            pdf.set_text_color(*INK)
             pdf.set_y(y + ah)
     saida.parent.mkdir(parents=True, exist_ok=True)
     pdf.output(str(saida))

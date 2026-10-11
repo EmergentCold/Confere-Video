@@ -121,6 +121,10 @@ def gerar_html(r, logo_data=""):
             botoes += f"<a href='{_e(orig)}' target='_blank'>Abrir arquivo</a>"
         momento = f" · vídeo {e['t_video']}" if e.get("t_video") else ""
         bip = f" · bipes ouvidos: {e['bipes']}" if e.get("bipes") is not None else ""
+        if e.get("confianca") is not None:
+            bip += f" · certeza {e['confianca']}%" + (" (baixa: não virou alerta)" if e.get("baixa_confianca") else "")
+        if e.get("operador"):
+            bip += f" · operador {_e(e['operador'])}"
         video = (f"<video controls preload='metadata' poster='fotos/{_e(e['base'])}.jpg' src='{_e(principal)}'></video>"
                  if principal else "")
         cards.append(f"""<article class='erro' data-t='{e['tipo']}'>
@@ -140,7 +144,8 @@ def gerar_html(r, logo_data=""):
 <header class="top"><div class="wrap">{logo}
 <div><div class="marca">{_e(r['empresa'])} · {_e(r['unidade'])}</div>
 <h1>Relatório de conferência da separação</h1>
-<div class="sub">{_e(r['local'])} · {_e(r['posto'])}{(' · ' + _e(r['turno'])) if r.get('turno') else ''} · {_e(per)}</div></div>
+<div class="sub">{_e(r['local'])} · {_e(r['posto'])}{(' · ' + _e(r['turno'])) if r.get('turno') else ''} · {_e(per)}</div>
+{('<div class="sub">Operador(es) pelo crachá: ' + ', '.join(_e(o['nome']) + ' (desde ' + _e(o['desde'][-8:]) + ')' for o in r.get('operadores', [])) + '</div>') if r.get('operadores') else ''}</div>
 <span class="modo">{_e(MODOS.get(r['modo'], r['modo']))}</span></div></header>
 <main class="wrap">
 <div class="kpis">

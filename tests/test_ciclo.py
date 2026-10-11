@@ -157,3 +157,28 @@ def test_sem_leitor_nao_confere_bipe(cfg):
     c = Ciclo(cfg, bipes=[])
     erros, _ = rodar(c, seq((P, 3), (None, 2), (C, 3)))
     assert tipos(erros) == ["sem_leitor"]
+
+
+# ---- grau de certeza (como o filtro de paridade do Smart Sampa) ----
+def test_certeza_alta_quando_a_mao_foi_vista_o_tempo_todo(cfg):
+    c = Ciclo(cfg)
+    erros, _ = rodar(c, seq((P, 3), (None, 4), (C, 3)))
+    assert erros[0]["confianca"] == 100
+
+
+def test_certeza_cai_quando_a_mao_some_no_caminho(cfg):
+    # mão vista na prateleira e na caixa, mas sumida (fora da imagem/escondida) em 6 quadros no meio
+    c = Ciclo(cfg)
+    quadros = seq((P, 3)) + [{}] * 6 + seq((C, 3))
+    erros, _ = rodar(c, quadros)
+    assert tipos(erros) == ["sem_leitor"]
+    assert 30 <= erros[0]["confianca"] <= 60
+
+
+def test_certeza_considera_a_nitidez_do_punho(cfg):
+    c = Ciclo(cfg)
+    t, erros = 0.0, []
+    for zs in seq((P, 3), (None, 4), (C, 3)):
+        erros += c.atualizar(t, {0: zs}, None, {0: (0, 0)}, {0: 0.3})  # IA pouco segura do punho
+        t += 1 / FPS
+    assert erros and erros[0]["confianca"] == 40

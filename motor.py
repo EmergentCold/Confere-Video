@@ -80,6 +80,10 @@ PADRAO = {
     "fps_gravacao_ao_vivo": 15,
     "pasta_resultados": "resultados",
     "fonte_ao_vivo": "0",
+    # grau de certeza mínimo (0-100) para um erro virar alerta (Teams, SharePoint, e-mail). Abaixo disso
+    # ele fica só no relatório, marcado "certeza baixa" (como o Smart Sampa, que descarta detecções abaixo de 90%)
+    "confianca_minima": 40,
+    "ler_cracha": True,  # identifica o operador pelo QR do crachá mostrado à câmera (sem biometria)
     "automacao": {
         "iniciar_com_windows": False,   # abre sozinho quando o PC liga
         "monitorar_ao_abrir": False,    # já começa a câmera ao vivo ao abrir
@@ -161,6 +165,48 @@ def carregar_modelo(cfg):
     if not m.is_absolute() and (PASTA / m).exists():
         m = PASTA / m  # a IA vem na pasta do programa: não depende da pasta de onde ele foi aberto
     return YOLO(str(m))
+
+
+# =========================================================================
+# Operador pelo QR do crachá (sem reconhecimento facial)
+# =========================================================================
+_LEITOR_QR = None
+
+
+def operador_do_qr(texto):
+    """Lê o QR do crachá do Emissor de Crachás (SST): '<endereço da ficha>#<base64url de
+    {"n": nome, "f": função, "u": unidade, ...}>'. Aceita também um QR só com o nome (texto).
+    Retorna {"nome", "funcao", "unidade"} ou None."""
+    texto = (texto or "").strip()
+    if not texto:
+        return None
+    if "#" in texto:
+        frag = texto.split("#", 1)[1].strip()
+        try:
+            d = json.loads(base64.urlsafe_b64decode(frag + "=" * (-len(frag) % 4)).decode("utf-8"))
+            if isinstance(d, dict) and str(d.get("n", "")).strip():
+                return {"nome": str(d["n"]).strip()[:80], "funcao": str(d.get("f", "")).strip()[:80],
+                        "unidade": str(d.get("u", "")).strip()[:80]}
+        except Exception:
+            pass
+    linha = texto.splitlines()[0].strip()
+    if not linha or re.match(r"^[a-z]+://", linha, re.I) or len(linha) > 80:
+        return None
+    return {"nome": linha, "funcao": "", "unidade": ""}
+
+
+def ler_cracha(img):
+    """Procura um QR de crachá na imagem. Retorna o operador ({"nome", ...}) ou None."""
+    global _LEITOR_QR
+    if img is None:
+        return None
+    if _LEITOR_QR is None:
+        _LEITOR_QR = cv2.QRCodeDetector()
+    try:
+        texto, pontos, _ = _LEITOR_QR.detectAndDecode(img)
+    except cv2.error:
+        return None
+    return operador_do_qr(texto) if pontos is not None else None
 
 
 # =========================================================================
@@ -491,10 +537,28 @@ class Ciclo:
         self.n_ok = 0
         self.n_incompletos = 0
         self.escala = None  # diagonal da imagem (pixels) para limitar o salto da mão
+        self._conf_inicio = 1.0
         self.reset()
 
     def reset(self):
         self.estado, self.t_ini, self.passou_leitor, self.trilha, self.ativa = "livre", None, False, [], None
+        self.q_total = self.q_vistos = 0   # quadros do item e quadros em que a mão do item foi vista
+        self.soma_conf = 0.0               # soma da confiança da IA no punho dessa mão
+
+    def confianca(self):
+        """Grau de certeza (0-100) do item atual, como o filtro de paridade do Smart Sampa: quanto do
+        trajeto a IA realmente viu a mão (cobertura) e com que nitidez (confiança média no punho)."""
+        if not self.q_total or not self.q_vistos:
+            return 0
+        cobertura = self.q_vistos / self.q_total
+        nitidez = self.soma_conf / self.q_vistos
+        return int(round(100 * cobertura * min(1.0, nitidez / 0.75)))
+
+    def _contar(self, zonas_mao, confs):
+        self.q_total += 1
+        if self.ativa in zonas_mao:
+            self.q_vistos += 1
+            self.soma_conf += confs.get(self.ativa, 1.0) if confs else 1.0
 
     def _novos(self, zonas_por_mao):
         """Dispara uma zona quando a mão esteve nela em k dos últimos k+1 quadros
@@ -520,13 +584,17 @@ class Ciclo:
         self.reset()
         self.estado, self.t_ini, self.ativa = "carregando", t, mao
         self.trilha = [(t, ponto)] if ponto is not None else []
+        self.q_total = self.q_vistos = 1
+        self.soma_conf = self._conf_inicio
 
-    def atualizar(self, t, zonas_mao, ponto=None, pontos_por_mao=None):
-        """zonas_mao: {id_mao: set(zonas)} (ou um set simples = uma mão só)."""
+    def atualizar(self, t, zonas_mao, ponto=None, pontos_por_mao=None, confs=None):
+        """zonas_mao: {id_mao: set(zonas)} (ou um set simples = uma mão só).
+        confs: {id_mao: confiança da IA no punho} (opcional; sem ela conta como nítida)."""
         if isinstance(zonas_mao, set):
             zonas_mao = {0: zonas_mao}
             pontos_por_mao = {0: ponto} if ponto is not None else {}
         pontos_por_mao = pontos_por_mao or {}
+        confs = confs or {}
         erros = []
         # a IA pode trocar "mão esquerda"/"mão direita" quando o braço cruza o corpo:
         # segue a mão ativa pela continuidade do movimento
@@ -538,6 +606,7 @@ class Ciclo:
                 self.ativa = m_perto
         novos = self._novos(zonas_mao)
         if self.estado == "carregando":
+            self._contar(zonas_mao, confs)
             p = pontos_por_mao.get(self.ativa, ponto)
             if p is not None:
                 self.trilha.append((t, p))
@@ -547,11 +616,13 @@ class Ciclo:
         # pegou na prateleira: sempre começa um item novo
         for m, zs in novos.items():
             if "prateleira" in zs:
+                self._conf_inicio = confs.get(m, 1.0)
                 self._iniciar(t, m, pontos_por_mao.get(m, ponto))
                 break
         if self.estado == "livre":
             for m, zs in novos.items():
                 if "leitor" in zs:  # prateleira não vista: começa no leitor
+                    self._conf_inicio = confs.get(m, 1.0)
                     self._iniciar(t, m, pontos_por_mao.get(m, ponto))
                     self.passou_leitor = True
                     break
@@ -562,7 +633,7 @@ class Ciclo:
         destino = "caixa_posto" if "caixa_posto" in zs else ("outras_caixas" if "outras_caixas" in zs else None)
         if destino:
             v = self.cfg["verificar"]
-            info = {"t_ini": self.t_ini, "t": t, "trilha": list(self.trilha)}
+            info = {"t_ini": self.t_ini, "t": t, "trilha": list(self.trilha), "confianca": self.confianca()}
             if destino == "outras_caixas" and v["caixa_errada"]:
                 erros.append(dict(info, tipo="caixa_errada"))
             if not self.passou_leitor and v["sem_leitor"]:
@@ -643,9 +714,10 @@ class Analisador:
         maos = [p for _, p in maos_id]
         zonas = {i: self.areas.onde(p) for i, p in maos_id}
         pontos = {i: p for i, p in maos_id}
+        confs = {i: float(op["kcf"][i]) for i, _ in maos_id} if op is not None else {}
         trilha = list(self.ciclo.trilha)
         self.ciclo.escala = (w * w + h * h) ** 0.5
-        erros = self.ciclo.atualizar(t, zonas, None, pontos)
+        erros = self.ciclo.atualizar(t, zonas, None, pontos, confs)
         if erros:
             self.aviso_txt = " + ".join(AVISO[e["tipo"]] for e in erros)
             self.aviso_ate = t + 2.5
@@ -758,6 +830,16 @@ class Sessao:
         self.periodo = [None, None]
         self.lock = threading.Lock()
         self.gravando = 0  # recortes ainda sendo gravados
+        self.operador = None   # quem está no posto (QR do crachá); vai em cada erro
+        self.operadores = []   # [{"nome", "funcao", "desde"}] na ordem em que mostraram o crachá
+
+    def identificar(self, op, quando=None):
+        """Operador mostrou o crachá: passa a ser o responsável pelos próximos itens. Retorna True se mudou."""
+        if not op or (self.operador and self.operador["nome"] == op["nome"]):
+            return False
+        self.operador = dict(op)
+        self.operadores.append(dict(op, desde=(quando or datetime.now()).strftime("%d/%m/%Y %H:%M:%S")))
+        return True
 
     def esperar_gravacoes(self, limite=90):
         t0 = time.time()
@@ -791,6 +873,10 @@ class Sessao:
                    "quando_iso": quando.astimezone().isoformat(timespec="seconds") if quando else "",
                    "hora": quando.hour if quando else None, "fonte": fonte,
                    "t_video": hms(t_video) if t_video is not None else "", "bipes": erro.get("bipes"),
+                   "confianca": erro.get("confianca"),
+                   "baixa_confianca": erro.get("confianca") is not None
+                   and erro["confianca"] < float(self.cfg.get("confianca_minima", 0) or 0),
+                   "operador": (self.operador or {}).get("nome", ""),
                    "original": "", "marcado": "", "duracao": 0}
             self.erros.append(reg)
         self.marcar_periodo(quando)
@@ -807,7 +893,8 @@ class Sessao:
                 "fim": self.fim.strftime("%d/%m/%Y %H:%M") if self.fim else "",
                 "gerado": datetime.now().strftime("%d/%m/%Y %H:%M"),
                 "periodo": [p.strftime("%d/%m/%Y %H:%M") if p else "" for p in self.periodo],
-                "ciclos": self.ciclos, "ok": self.ok, "erros": self.erros, "fontes": self.fontes}
+                "ciclos": self.ciclos, "ok": self.ok, "erros": self.erros, "fontes": self.fontes,
+                "operadores": self.operadores, "confianca_minima": self.cfg.get("confianca_minima", 0)}
 
     def salvar(self):
         from relatorio import gerar_html
@@ -817,11 +904,14 @@ class Sessao:
             with open(self.pasta / "erros.csv", "w", newline="", encoding="utf-8-sig") as f:
                 w = csv.writer(f, delimiter=";")
                 w.writerow(["nº", "código", "empresa", "unidade", "posto", "turno", "data/hora", "erro", "origem",
-                            "momento no vídeo", "bipes ouvidos", "recorte original", "recorte marcado", "foto"])
+                            "momento no vídeo", "bipes ouvidos", "certeza (%)", "alertado", "operador",
+                            "recorte original", "recorte marcado", "foto"])
                 for e in self.erros:
                     w.writerow([e["n"], e.get("id", ""), r["empresa"], r["unidade"], r["posto"], r["turno"],
                                 e["quando"], TIPOS[e["tipo"]],
                                 e["fonte"], e["t_video"], "" if e["bipes"] is None else e["bipes"],
+                                "" if e.get("confianca") is None else e["confianca"],
+                                "não (certeza baixa)" if e.get("baixa_confianca") else "sim", e.get("operador", ""),
                                 e["original"], e["marcado"], f"fotos/{e['base']}.jpg"])
             logo = ""
             lp = self.cfg.get("logo")
@@ -932,6 +1022,7 @@ def analisar_videos(videos, cfg, areas_dados, modelo, ev=print, parar=None, prev
                 if integracao:
                     integracao.erro(cfg, sessao, reg)
 
+        ult_qr = -1e9
         while cap.grab():
             if parar.is_set():
                 break
@@ -940,6 +1031,11 @@ def analisar_videos(videos, cfg, areas_dados, modelo, ev=print, parar=None, prev
                 if not ok:
                     break
                 t = idx / fps
+                if cfg.get("ler_cracha", True) and t - ult_qr >= 1:
+                    ult_qr = t
+                    quando_qr = inicio_real + timedelta(seconds=t) if inicio_real else None
+                    if sessao.identificar(ler_cracha(q), quando_qr):
+                        ev("operador", dict(sessao.operador, t_video=hms(t)))
                 rot = f"{cfg['posto']} | {Path(v).name} | {hms(t)}"
                 an._ultimo_t = t
                 img, erros = an.processar(q, t, rot)
@@ -1259,6 +1355,11 @@ class AoVivo(threading.Thread):
             if time.time() - ult_vigia >= 1:
                 ult_vigia = time.time()
                 self._vigiar_camera()
+                if cfg.get("ler_cracha", True):
+                    with self.lock:
+                        q_qr = self.ultimo
+                    if self.sessao.identificar(ler_cracha(q_qr)):
+                        self.ev("operador", dict(self.sessao.operador))
                 if self._fim_turno and datetime.now() >= self._fim_turno:
                     antiga = self.sessao
                     self.sessao = self._nova_sessao(an)

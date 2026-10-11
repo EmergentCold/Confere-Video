@@ -75,9 +75,11 @@ Tela **Automação**:
 Tela **Microsoft 365**. Cada erro vira item numa lista do SharePoint (com foto e recorte), aparece no Teams, e o gestor recebe o resumo de cada turno por e-mail com o PDF. Os supervisores fazem a tratativa num app do Power Apps (erro confirmado ou falso alarme, orientação dada, operador).
 
 1. Preencha o site do SharePoint e os e-mails e clique em **Gerar fluxos do Power Automate…**
-2. Importe os 4 fluxos no Power Automate, rode o fluxo 1 (cria as listas) e cole no programa a URL do fluxo 2.
+2. Importe os 5 fluxos no Power Automate, rode o fluxo 1 (cria as listas) e cole no programa a URL do fluxo 2. Ligue o fluxo 5 para o supervisor validar cada erro direto no Teams.
 3. **Testar envio**: chega um cartão no Teams.
 4. Monte o app colando as telas da pasta `Microsoft365\PowerApps`.
+
+**Certeza da IA e operador.** Cada erro sai com uma certeza de 0 a 100% (quanto do ciclo a IA viu a mão e com que nitidez). Abaixo do mínimo da tela **Configurações** (padrão 40%), o erro fica só no relatório, sem alerta. O operador é identificado pelo **QR do crachá** mostrado à câmera no começo do turno ou pela lista de **escala** no SharePoint, nunca pelo rosto.
 
 O passo a passo completo está em **`Microsoft365\GUIA_MICROSOFT_365.html`** (botão **Abrir guia**). Se a internet cair, os envios esperam na pasta `fila_envio` e saem sozinhos depois.
 
@@ -110,4 +112,4 @@ O passo a passo completo está em **`Microsoft365\GUIA_MICROSOFT_365.html`** (bo
 
 ## LGPD
 
-Use com ciência da gestão e dos operadores. O sistema não faz reconhecimento facial e grava só os trechos com erro. Os recortes servem para orientação e melhoria do processo.
+Use com ciência da gestão e dos operadores. O sistema não faz reconhecimento facial nem usa biometria, e grava só os trechos com erro. Todo alerta é conferido por uma pessoa antes de virar tratativa. Os recortes servem para orientação e melhoria do processo.

@@ -58,6 +58,9 @@ PADRAO_M365 = {
     "site_sharepoint": "",
     "lista_erros": "ConfereVideo_Erros",
     "lista_sessoes": "ConfereVideo_Turnos",
+    "lista_escala": "ConfereVideo_Escala",   # quem está em cada posto/turno (preenche o operador do erro)
+    "validar_no_teams": True,                # fluxo 5: supervisor confirma ou descarta o erro no próprio Teams
+    "horas_para_validar": 12,                # sem resposta nesse prazo, o gestor recebe um aviso
     "emails_supervisores": "",
     "emails_gestor": "",
     "canal_teams": "",
@@ -242,6 +245,9 @@ def montar_erro(cfg, sessao, reg, foto=None, notificar=True):
         "Fonte": reg.get("fonte", ""),
         "Sessao": sessao.id,
         "Bipes": reg.get("bipes"),
+        "Confianca": reg.get("confianca"),
+        "Operador": reg.get("operador") or None,
+        "OperadorOrigem": "Crachá" if reg.get("operador") else None,
         "MomentoVideo": reg.get("t_video", ""),
         "Status": "Pendente",
         "Miniatura": miniatura(foto, 480, 30000) if Path(foto).exists() else "",
@@ -513,6 +519,9 @@ class Integracao:
 
     def erro(self, cfg, sessao, reg):
         if not self._pode(sessao.modo):
+            return None
+        if reg.get("baixa_confianca"):  # como o Smart Sampa: abaixo da certeza mínima não vira alerta
+            self._registrar(f"erro {reg.get('id', '')} com certeza baixa ({reg.get('confianca')}%): não enviado")
             return None
         notificar = sessao.modo != "videos" or bool(self.m.get("avisar_videos_gravados"))
         try:

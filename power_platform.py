@@ -4,10 +4,14 @@ ConfereVídeo · pacotes do Power Automate
 Gera os fluxos como pacotes .zip para "Importar pacote (Herdado)" no Power Automate,
 já preenchidos com o site do SharePoint, as listas e os e-mails das Configurações.
 
-  1_Criar_listas.zip        botão: cria as duas listas no SharePoint (rodar uma vez)
-  2_Receber_eventos.zip     recebe os envios do programa: lista + anexos + Teams + e-mail
+  1_Criar_listas.zip        botão: cria as listas no SharePoint (erros, turnos e escala; rodar uma vez)
+  2_Receber_eventos.zip     recebe os envios do programa: lista + anexos + Teams + e-mail; sem crachá
+                            lido, preenche o operador pela escala do posto/turno
   3_Cobranca_diaria.zip     todo dia 07:00: erros sem tratativa -> e-mail e Teams
-  4_Resumo_semanal.zip      segunda 07:30: indicadores da semana -> e-mail do gestor
+  4_Resumo_semanal.zip      segunda 07:30: indicadores da semana (com % de falso alarme) -> e-mail do gestor
+  5_Validar_no_Teams.zip    a cada erro novo: cartão no Teams para o supervisor confirmar ou marcar falso
+                            alarme ali mesmo (validação humana, como no Smart Sampa); sem resposta no
+                            prazo, avisa o gestor
 
 Só usa conectores padrão (SharePoint, Teams, Outlook). O gatilho do fluxo 2 vem como
 "Quando uma solicitação HTTP for recebida"; sem licença Premium, troque-o por
@@ -21,7 +25,7 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from integracao import LINK_RECORTE, PADRAO_M365, lista_emails
+from integracao import LINK_RECORTE, PADRAO_M365, canal_do_link, lista_emails
 
 FUSO = "E. South America Standard Time"  # horário de Brasília
 CON = {
@@ -41,7 +45,11 @@ CAMPOS_ERROS = [
     ("Posto", "Text"), ("Turno", "Text"), ("Origem", "Text"), ("Fonte", "Text"), ("Sessao", "Text"),
     ("Bipes", "Number"), ("MomentoVideo", "Text"), ("Status", "Text:Pendente"), ("Tratativa", "Text"),
     ("Operador", "Text"), ("Observacao", "Note"), ("TratadoPor", "Text"), ("TratadoEm", "DateTime"),
-    ("LinkRecorte", "Note"), ("Miniatura", "Note"),
+    ("LinkRecorte", "Note"), ("Miniatura", "Note"), ("Confianca", "Number"), ("OperadorOrigem", "Text"),
+]
+CAMPOS_ESCALA = [  # quem está em cada posto e turno; Fim vazio = vale até nova escala
+    ("Posto", "Text"), ("Turno", "Text"), ("Operador", "Text"), ("Matricula", "Text"),
+    ("Inicio", "DateTime"), ("Fim", "DateTime"),
 ]
 CAMPOS_TURNOS = [
     ("Inicio", "DateTime"), ("Fim", "DateTime"), ("Unidade", "Text"), ("Local", "Text"), ("Posto", "Text"),
@@ -49,7 +57,7 @@ CAMPOS_TURNOS = [
     ("PctSemErro", "Number:1"), ("SemLeitor", "Number"), ("CaixaErrada", "Number"), ("SemBipe", "Number"),
     ("BipeDuplo", "Number"),
 ]
-INDICES = {"erros": ["Status", "DataHora", "Posto"], "turnos": ["Inicio", "Posto"]}
+INDICES = {"erros": ["Status", "DataHora", "Posto"], "turnos": ["Inicio", "Posto"], "escala": ["Posto", "Inicio"]}
 
 
 def schema_xml(nome, tipo):
@@ -177,6 +185,7 @@ def fluxo_receber_eventos(m):
                 "{\"LinkRecorte\": \"@{variables('LinkRecorte')}\"}",
                 dict(JSON_NOMETA, **{"IF-MATCH": "*", "X-HTTP-Method": "MERGE"}))},
             apos=depois("Anexar_arquivos_do_erro")),
+        "Operador_pela_escala": _operador_pela_escala(m, site, lista),
     }
     caso_sessao = {
         "Criar_item_do_turno": sp_http(site, "POST", f"_api/web/lists/getbytitle('@{{{lista}}}')/items",
@@ -237,15 +246,48 @@ def fluxo_receber_eventos(m):
     return definicao(gatilho, acoes), ["sp", "teams", "o365"]
 
 
+def _operador_pela_escala(m, site, lista):
+    """Sem crachá lido pelo programa, o operador do erro vem da lista Escala: a linha mais recente
+    do mesmo posto que já começou, ainda sem fim, do mesmo turno (ou com o turno em branco)."""
+    escala = m.get("lista_escala") or PADRAO_M365["lista_escala"]
+    item = f"{D}?['item']"
+    agora = "utcNow('yyyy-MM-ddTHH:mm:ssZ')"
+    posto = "replace(coalesce(" + item + "?['Posto'], ''), '''', '''''')"  # aspas simples dobradas (OData)
+    vigentes = (f"@and(or(empty(item()?['Fim']), greaterOrEquals(item()?['Fim'], {agora})), "
+                f"or(empty(item()?['Turno']), equals(item()?['Turno'], coalesce({item}?['Turno'], ''))))")
+    nome = "replace(string(first(body('Escala_vigente'))?['Operador']), '\"', '')"
+    return se(
+        {"and": [{"equals": [f"@coalesce({item}?['Operador'], '')", ""]}]},
+        {"Escala_do_posto": acao("sp", "GetItems", {
+            "dataset": site, "table": escala,
+            "$filter": f"Posto eq '@{{{posto}}}' and Inicio le '@{{{agora}}}'",
+            "$orderby": "Inicio desc", "$top": 50},
+            descricao="Linhas da escala deste posto que já começaram (a mais recente primeiro)."),
+         "Escala_vigente": {"type": "Query", "runAfter": depois("Escala_do_posto"),
+                            "inputs": {"from": "@outputs('Escala_do_posto')?['body/value']", "where": vigentes}},
+         "Achou_na_escala": se(
+             {"and": [{"greater": ["@length(body('Escala_vigente'))", 0]}]},
+             {"Gravar_operador": sp_http(
+                 site, "POST", f"_api/web/lists/getbytitle('@{{{D}?['lista']}}')/items(@{{body('Criar_item_do_erro')?['Id']}})",
+                 "{\"Operador\": \"@{" + nome + "}\", \"OperadorOrigem\": \"Escala\"}",
+                 dict(JSON_NOMETA, **{"IF-MATCH": "*", "X-HTTP-Method": "MERGE"}))},
+             apos=depois("Escala_vigente"))},
+        apos=depois("Gravar_link_do_recorte", tambem_falha=True),
+        descricao="O programa não leu o crachá: procura o operador na escala do posto.")
+
+
 # ---------------------------------------------------------------- fluxo 1: criar listas
 def fluxo_criar_listas(m):
     site = m["site_sharepoint"].rstrip("/")
     le, lt = m.get("lista_erros") or PADRAO_M365["lista_erros"], m.get("lista_sessoes") or PADRAO_M365["lista_sessoes"]
+    les = m.get("lista_escala") or PADRAO_M365["lista_escala"]
     gatilho = {"manual": {"type": "Request", "kind": "Button",
                           "inputs": {"schema": {"type": "object", "properties": {}, "required": []}}}}
     acoes, ant = {}, None
     for chave, lista, campos, desc in (("Erros", le, CAMPOS_ERROS, "Erros detectados pelo ConfereVídeo"),
-                                       ("Turnos", lt, CAMPOS_TURNOS, "Resumo de cada turno do ConfereVídeo")):
+                                       ("Turnos", lt, CAMPOS_TURNOS, "Resumo de cada turno do ConfereVídeo"),
+                                       ("Escala", les, CAMPOS_ESCALA,
+                                        "Quem está em cada posto e turno (ConfereVídeo preenche o operador do erro)")):
         lista_q = lista.replace("'", "''")
         criar = f"Criar_lista_{chave}"
         acoes[criar] = sp_http(site, "POST", "_api/web/lists",
@@ -260,7 +302,7 @@ def fluxo_criar_listas(m):
                 "{\"parameters\": {\"__metadata\": {\"type\": \"SP.XmlSchemaFieldCreationInformation\"}, "
                 "\"SchemaXml\": \"@{item()}\", \"Options\": 24}}", JSON_VERBOSE)},
             depois(f"Colunas_{chave}"))
-        indices = INDICES["erros" if chave == "Erros" else "turnos"]
+        indices = INDICES[chave.lower()]
         acoes[f"Indexar_{chave}"] = cada("@createArray(" + ", ".join(f"'{c}'" for c in indices) + ")", {
             f"Indexar_coluna_{chave}": sp_http(
                 site, "POST", f"_api/web/lists/getbytitle('{lista_q}')/fields/getbyinternalnameortitle('@{{item()}}')",
@@ -268,7 +310,7 @@ def fluxo_criar_listas(m):
                 dict(JSON_VERBOSE, **{"IF-MATCH": "*", "X-HTTP-Method": "MERGE"}))},
             depois(f"Criar_colunas_{chave}", tambem_falha=True))
         ant = f"Indexar_{chave}"
-    acoes["Pronto"] = compor(f"Listas '{le}' e '{lt}' prontas em {site}", depois(ant, tambem_falha=True))
+    acoes["Pronto"] = compor(f"Listas '{le}', '{lt}' e '{les}' prontas em {site}", depois(ant, tambem_falha=True))
     return definicao(gatilho, acoes), ["sp"]
 
 
@@ -375,6 +417,10 @@ def fluxo_semanal(m):
     pct = ("@{if(greater(variables('Itens'), 0), formatNumber(mul(div(float(sub(variables('Itens'), "
            "variables('ErrosTurnos'))), float(variables('Itens'))), 100), '0.0', 'pt-BR'), '—')}")
 
+    validados = "add(length(body('Confirmados')), length(body('Falsos_alarmes')))"
+    pct_fa = (f"@{{if(greater({validados}, 0), concat(formatNumber(mul(div(float(length(body('Falsos_alarmes'))), "
+              f"float({validados})), 100), '0.0', 'pt-BR'), '%'), '—')}}")
+
     def kpi(v, rot, cor="#16202e"):
         return (f'<td style="padding:12px;border:1px solid #e3e7ee;width:25%"><div style="font-size:26px;'
                 f'font-weight:bold;color:{cor}">{v}</div><div style="font-size:12px;color:#5b6678">{rot}</div></td>')
@@ -389,10 +435,113 @@ def fluxo_semanal(m):
              f'{linha("Bipe duplo para um item", "Bipe_duplo")}</table>'
              f'<h3 style="font-size:13px;color:#5b6678;text-transform:uppercase;margin:20px 0 6px">Tratativas</h3>'
              f'<table style="border-collapse:collapse;width:100%">{linha("Erros confirmados", "Confirmados")}'
-             f'{linha("Falsos alarmes", "Falsos_alarmes")}{linha("Ainda sem tratativa", "Pendentes")}</table>')
+             f'{linha("Falsos alarmes", "Falsos_alarmes")}{linha("Ainda sem tratativa", "Pendentes")}'
+             f'<tr><td style="padding:6px 10px">Falsos alarmes entre os erros já validados</td>'
+             f'<td style="padding:6px 10px;text-align:right;font-weight:bold">{pct_fa}</td></tr></table>'
+             f'<p style="color:#5b6678;font-size:12px">Falso alarme alto num tipo de erro indica área do posto mal '
+             f'marcada ou sensibilidade a ajustar (como o filtro de certeza do Smart Sampa).</p>')
     acoes["Email_semanal"] = email(para, "ConfereVídeo · resumo da semana", _casca_email("Resumo da semana", miolo, link),
                                    apos=depois(ant))
     return definicao(gatilho, acoes), ["sp", "o365"]
+
+
+# ---------------------------------------------------------------- fluxo 5: validar no Teams
+PIXEL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+TRATATIVAS = ["Orientação verbal", "Retreinamento no posto", "Advertência", "Só registro"]
+
+
+def fluxo_validar_teams(m):
+    """Validação humana de cada erro, como no Smart Sampa (todo alerta da IA passa por uma pessoa antes de
+    qualquer ação): a cada erro novo na lista, o supervisor recebe um cartão no Teams com a foto e decide ali
+    mesmo, 'Confirmar erro' ou 'Falso alarme'. A resposta grava a tratativa no SharePoint; sem resposta no
+    prazo, o gestor recebe um e-mail e o erro segue para a cobrança diária."""
+    site = m["site_sharepoint"].rstrip("/")
+    lista = m.get("lista_erros") or PADRAO_M365["lista_erros"]
+    sup = lista_emails(m.get("emails_supervisores")) or lista_emails(m.get("emails_gestor"))
+    gestor = lista_emails(m.get("emails_gestor")) or sup
+    horas = max(1, int(m.get("horas_para_validar") or 12))
+    grupo, canal = canal_do_link(m.get("canal_teams", ""))
+    link = m.get("link_app", "") if str(m.get("link_app", "")).startswith("https://") else ""
+    tb = "triggerBody()"
+    resp = "body('Perguntar_ao_supervisor')"
+    pagina_item = f"{site}/Lists/{lista}/DispForm.aspx?ID=@{{{tb}?['ID']}}"
+    quando = f"@{{formatDateTime(convertFromUtc({tb}?['DataHora'], '{FUSO}'), 'dd/MM/yyyy HH:mm')}}"
+    cartao = {
+        "type": "AdaptiveCard", "$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "version": "1.4",
+        "body": [
+            {"type": "Container", "style": "attention", "bleed": True, "items": [
+                {"type": "TextBlock", "text": "CONFEREVÍDEO · VALIDAR ERRO", "size": "Small", "weight": "Bolder"},
+                {"type": "TextBlock", "text": f"@{{{tb}?['Tipo']}}", "size": "Large", "weight": "Bolder", "wrap": True}]},
+            {"type": "Image", "url": f"@{{coalesce({tb}?['Miniatura'], '{PIXEL}')}}", "size": "Stretch",
+             "altText": "Foto do momento do erro"},
+            {"type": "FactSet", "facts": [
+                {"title": "Posto", "value": f"@{{{tb}?['Posto']}}"},
+                {"title": "Quando", "value": quando},
+                {"title": "Turno", "value": f"@{{coalesce({tb}?['Turno'], '—')}}"},
+                {"title": "Certeza da IA", "value": f"@{{coalesce(string({tb}?['Confianca']), '—')}}%"},
+                {"title": "Bipes ouvidos", "value": f"@{{coalesce(string({tb}?['Bipes']), '—')}}"}]},
+            {"type": "TextBlock", "wrap": True, "size": "Small", "isSubtle": True,
+             "text": "Assista ao recorte antes de decidir. A IA aponta, quem decide é você."},
+            {"type": "Input.Text", "id": "operador", "label": "Operador",
+             "value": f"@{{coalesce({tb}?['Operador'], '')}}", "placeholder": "Quem estava no posto"},
+            {"type": "Input.ChoiceSet", "id": "tratativa", "label": "Se confirmar: tratativa", "value": TRATATIVAS[0],
+             "choices": [{"title": t, "value": t} for t in TRATATIVAS]},
+            {"type": "Input.Text", "id": "obs", "label": "Observação", "isMultiline": True,
+             "placeholder": "Opcional"}],
+        "actions": [
+            {"type": "Action.Submit", "title": "Confirmar erro", "style": "positive", "data": {"decisao": "Confirmado"}},
+            {"type": "Action.Submit", "title": "Falso alarme", "style": "destructive", "data": {"decisao": "Falso alarme"}},
+            {"type": "Action.OpenUrl", "title": "Ver recorte e foto", "url": pagina_item}]}
+    p = {"poster": "Flow bot", "body/body/messageBody": json.dumps(cartao, ensure_ascii=False),
+         "body/body/updateMessage": "Validação registrada no SharePoint. Obrigado!",
+         "body/body/shouldUpdateCard": True}
+    if grupo and canal:
+        p.update({"location": "Channel", "body/body/recipient/groupId": grupo, "body/body/recipient/channelId": canal})
+    else:
+        p.update({"location": "Chat with Flow bot", "body/body/recipient/to": sup.split(";")[0]})
+    perguntar = {"type": "OpenApiConnectionWebhook", "runAfter": {},
+                 "inputs": {"host": {"apiId": "/providers/Microsoft.PowerApps/apis/shared_teams",
+                                     "connectionName": "shared_teams", "operationId": "PostCardAndWaitForResponse"},
+                            "parameters": p, "authentication": "@parameters('$authentication')"},
+                 "limit": {"timeout": f"PT{horas}H"},
+                 "description": f"Espera a resposta do supervisor por até {horas} h."}
+    validacao = compor({
+        "Status": f"@{{coalesce({resp}?['data']?['decisao'], 'Pendente')}}",
+        "Tratativa": f"@{{if(equals({resp}?['data']?['decisao'], 'Confirmado'), coalesce({resp}?['data']?['tratativa'], ''), '')}}",
+        "Operador": f"@{{coalesce({resp}?['data']?['operador'], {tb}?['Operador'], '')}}",
+        "Observacao": f"@{{coalesce({resp}?['data']?['obs'], '')}}",
+        "TratadoPor": f"@{{coalesce({resp}?['responder']?['displayName'], {resp}?['responder']?['email'], 'Teams')}}",
+        "TratadoEm": "@{utcNow()}"}, depois("Perguntar_ao_supervisor"),
+        "O que o supervisor respondeu no cartão.")
+    sem_resposta = _casca_email(
+        "Erro sem validação no prazo",
+        f"<p>O erro <b>@{{{tb}?['Title']}}</b> (@{{{tb}?['Tipo']}}, {quando}, posto @{{{tb}?['Posto']}}) "
+        f"não foi validado no Teams em {horas} h. Ele continua pendente e entra na cobrança diária.</p>"
+        f'<p><a href="{pagina_item}">Ver o recorte e a foto</a></p>', link)
+    acoes = {
+        "Nao_e_demonstracao": se(
+            {"and": [{"not": {"equals": [f"@{tb}?['Origem']", "Demonstração"]}},
+                     {"equals": [f"@coalesce({tb}?['Status'], 'Pendente')", "Pendente"]}]},
+            {"Perguntar_ao_supervisor": perguntar,
+             "Validacao": validacao,
+             "Gravar_validacao": sp_http(
+                 site, "POST", f"_api/web/lists/getbytitle('{lista.replace(chr(39), chr(39) * 2)}')/items(@{{{tb}?['ID']}})",
+                 "@{string(outputs('Validacao'))}", dict(JSON_NOMETA, **{"IF-MATCH": "*", "X-HTTP-Method": "MERGE"}),
+                 depois("Validacao"), "Grava a decisão do supervisor no item do erro."),
+             "Avisar_gestor_sem_resposta": email(
+                 gestor, f"ConfereVídeo · erro sem validação há {horas} h (@{{{tb}?['Posto']}})", sem_resposta,
+                 apos={"Perguntar_ao_supervisor": ["TimedOut", "Failed"]})},
+            descricao="Demonstrações e erros já tratados pelo app não pedem validação."),
+    }
+    gatilho = {"Quando_um_erro_chegar": {
+        "type": "OpenApiConnection", "recurrence": {"interval": 1, "frequency": "Minute"},
+        "splitOn": "@triggerOutputs()?['body/value']",
+        "inputs": {"host": {"apiId": "/providers/Microsoft.PowerApps/apis/shared_sharepointonline",
+                            "connectionName": "shared_sharepointonline", "operationId": "GetOnNewItems"},
+                   "parameters": {"dataset": site, "table": lista},
+                   "authentication": "@parameters('$authentication')"},
+        "description": "Um disparo por erro novo na lista (verifica a cada minuto)."}}
+    return definicao(gatilho, acoes), ["sp", "teams", "o365"]
 
 
 # ---------------------------------------------------------------- pacote .zip (Importar pacote (Herdado))
@@ -442,6 +591,7 @@ FLUXOS = [
     ("2_Receber_eventos", "ConfereVídeo · 2 Receber eventos", fluxo_receber_eventos),
     ("3_Cobranca_diaria", "ConfereVídeo · 3 Cobrança diária", fluxo_cobranca),
     ("4_Resumo_semanal", "ConfereVídeo · 4 Resumo semanal", fluxo_semanal),
+    ("5_Validar_no_Teams", "ConfereVídeo · 5 Validar no Teams", fluxo_validar_teams),
 ]
 
 
@@ -457,7 +607,7 @@ def faltando(m):
 
 
 def gerar_pacotes(m, pasta):
-    """Gera os 4 pacotes .zip em 'pasta'. Retorna a lista de arquivos."""
+    """Gera os pacotes .zip (um por fluxo) em 'pasta'. Retorna a lista de arquivos."""
     pasta = Path(pasta)
     pasta.mkdir(parents=True, exist_ok=True)
     feitos = []
@@ -481,6 +631,11 @@ Clique em Importar. Faça na ordem:
                         Sem licença Premium: troque o gatilho pelo do Teams (veja o guia, passo 4).
 3_Cobranca_diaria.zip   Ligue o fluxo (roda todo dia às 07:00).
 4_Resumo_semanal.zip    Ligue o fluxo (roda toda segunda às 07:30).
+5_Validar_no_Teams.zip  Ligue o fluxo: a cada erro novo, o supervisor confirma ou marca falso alarme
+                        no próprio Teams (cartão com a foto). Sem resposta no prazo, o gestor é avisado.
+
+Escala: preencha a lista ConfereVideo_Escala (Posto, Turno, Operador, Início, Fim) para o operador
+de cada erro vir preenchido quando o crachá não for mostrado à câmera.
 
 O passo a passo completo está no GUIA_MICROSOFT_365.html, na pasta Microsoft365 do programa.
 """

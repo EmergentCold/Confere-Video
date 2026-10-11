@@ -187,7 +187,12 @@ class PainelResultado(ttk.Frame):
 
     def erro(self, reg, pasta=None):
         quando = reg["quando"][-8:] if reg["quando"] else reg.get("t_video", "")
-        iid = self.lista.insert("", 0, values=(quando, motor.TIPOS_CURTO[reg["tipo"]]))
+        txt = motor.TIPOS_CURTO[reg["tipo"]]
+        if reg.get("confianca") is not None:
+            txt += f" · certeza {reg['confianca']}%" + (" (baixa: sem alerta)" if reg.get("baixa_confianca") else "")
+        if reg.get("operador"):
+            txt += f" · {reg['operador']}"
+        iid = self.lista.insert("", 0, values=(quando, txt))
         self.regs[iid] = (reg, Path(pasta) if pasta else None)
 
     def _abrir_recorte(self, _e):
@@ -949,6 +954,14 @@ class PaginaConfig(ttk.Frame):
         h.grid(row=15, column=1, sticky="w", padx=8)
         ttk.Radiobutton(h, text="Rápida (PC comum)", value="rapido", variable=self.prec).pack(side="left")
         ttk.Radiobutton(h, text="Precisa (PC com placa de vídeo)", value="preciso", variable=self.prec).pack(side="left", padx=8)
+        ttk.Label(f, text="Certeza mínima para alertar").grid(row=16, column=0, sticky="w", pady=4)
+        self.conf_min = tk.IntVar(value=int(cfg.get("confianca_minima", 40)))
+        ttk.Spinbox(f, from_=0, to=95, increment=5, width=5, textvariable=self.conf_min).grid(row=16, column=1, sticky="w", padx=8)
+        ttk.Label(f, text="% · abaixo disso o erro fica só no relatório, sem Teams/e-mail", style="Muted.TLabel").grid(
+            row=16, column=2, sticky="w")
+        self.cracha = tk.BooleanVar(value=bool(cfg.get("ler_cracha", True)))
+        ttk.Checkbutton(f, text="Identificar o operador pelo QR do crachá mostrado à câmera (sem reconhecimento facial)",
+                        variable=self.cracha).grid(row=17, column=0, columnspan=3, sticky="w", pady=(4, 0))
         b = ttk.Frame(self)
         b.pack(anchor="w", pady=18)
         ttk.Button(b, text="Salvar configurações", style="Primary.TButton", command=self.salvar).pack(side="left")
@@ -972,6 +985,8 @@ class PaginaConfig(ttk.Frame):
         cfg["usar_som_do_bipe"] = self.som.get()
         cfg["bipe_limiar_db"] = int(self.lim.get())
         cfg["segundos_antes"], cfg["segundos_depois"] = int(self.antes.get()), int(self.depois.get())
+        cfg["confianca_minima"] = max(0, min(95, int(self.conf_min.get())))
+        cfg["ler_cracha"] = self.cracha.get()
         rapido = self.prec.get() == "rapido"
         novo_modelo = "yolo11n-pose.pt" if rapido else "yolo11s-pose.pt"
         if novo_modelo != cfg["modelo_pose"]:
@@ -1146,7 +1161,8 @@ class App(tk.Tk):
                 pv.res.pasta = pv.trab.sessao.pasta
         elif tipo == "vivo_erro":
             pv.res.erro(d["reg"], d.get("pasta"))
-            self.bell()
+            if not d["reg"].get("baixa_confianca"):  # certeza baixa: registra sem tocar o alarme
+                self.bell()
         elif tipo == "vivo_turno":
             pv.res.limpar()
             pv.res.pasta = Path(d["pasta"])
@@ -1155,6 +1171,9 @@ class App(tk.Tk):
         elif tipo == "vivo_sessao_fechada":
             if self.paginas["rel"].winfo_ismapped():
                 self.paginas["rel"].atualizar()
+        elif tipo in ("vivo_operador", "vid_operador"):
+            (pv if tipo == "vivo_operador" else pd).status.set(
+                f"Operador identificado pelo crachá: {d['nome']}" + (f" ({d['funcao']})" if d.get("funcao") else ""))
         elif tipo == "vivo_alerta":
             pv.status.set(d)
             self.bell()

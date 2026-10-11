@@ -71,6 +71,7 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <li><a href="#p3">Criar as listas no SharePoint</a></li>
 <li><a href="#p4">Ligar o fluxo que recebe os erros</a></li>
 <li><a href="#p5">Ligar a cobrança diária e o resumo semanal</a></li>
+<li><a href="#p5b">Validar cada erro no Teams e identificar o operador</a></li>
 <li><a href="#p6">Montar o app de tratativa (Power Apps)</a></li>
 <li><a href="#p7">Automação no PC da câmera</a></li>
 <li><a href="#p8">Teste completo</a></li>
@@ -136,7 +137,7 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <li>No ConfereVídeo, abra a tela <b>Microsoft 365</b>.</li>
 <li>Preencha <span class="rotulo">Site do SharePoint</span>, <span class="rotulo">E-mails dos supervisores</span> e <span class="rotulo">E-mails do gestor</span> (vários e-mails: separe por vírgula). Deixe os nomes das listas como estão.</li>
 <li>A <span class="rotulo">Chave de segurança</span> já vem criada. Ela garante que o fluxo só aceite envios deste programa.</li>
-<li>Clique em <b>Salvar</b> e depois em <b>Gerar fluxos do Power Automate…</b>. Escolha uma pasta. Saem 4 arquivos <code>.zip</code> já preenchidos com o seu site e os e-mails, e um <code>LEIA-ME.txt</code>.</li>
+<li>Clique em <b>Salvar</b> e depois em <b>Gerar fluxos do Power Automate…</b>. Escolha uma pasta. Saem 5 arquivos <code>.zip</code> já preenchidos com o seu site e os e-mails, e um <code>LEIA-ME.txt</code>.</li>
 </ol>
 
 <h2 id="p2"><span class="n">4</span>Importar os fluxos no Power Automate</h2>
@@ -152,8 +153,9 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <h2 id="p3"><span class="n">5</span>Criar as listas no SharePoint</h2>
 <ol class="passos">
 <li>Em <b>Meus fluxos</b>, abra <b>ConfereVídeo · 1 Criar listas</b>. Se ele estiver desligado, clique em <b>Ligar</b>. Depois, <b>Executar</b> &gt; <b>Executar fluxo</b>.</li>
-<li>Em cerca de 1 minuto aparecem no site as listas <code>ConfereVideo_Erros</code> e <code>ConfereVideo_Turnos</code>, com todas as colunas e índices.</li>
-<li>Se rodar de novo, ele avisa que as listas já existem: é normal, não estraga nada.</li>
+<li>Em cerca de 1 minuto aparecem no site as listas <code>ConfereVideo_Erros</code>, <code>ConfereVideo_Turnos</code> e <code>ConfereVideo_Escala</code>, com todas as colunas e índices.</li>
+<li>Se rodar de novo, ele avisa que as listas já existem: é normal, não estraga nada. As colunas que faltarem são criadas.</li>
+<li><b>Já tinha o ConfereVídeo ligado?</b> Rode o fluxo 1 de novo depois de atualizar o programa: ele cria a lista de escala e as colunas novas (<code>Confianca</code> e <code>OperadorOrigem</code>) nas listas que você já tem, sem mexer nos itens.</li>
 </ol>
 
 <h2 id="p4"><span class="n">6</span>Ligar o fluxo que recebe os erros</h2>
@@ -178,6 +180,26 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <h2 id="p5"><span class="n">7</span>Ligar a cobrança diária e o resumo semanal</h2>
 <p>Abra <b>ConfereVídeo · 3 Cobrança diária</b> e <b>ConfereVídeo · 4 Resumo semanal</b> e clique em <b>Ligar</b>. Para ver como fica sem esperar, use <b>Testar</b> &gt; <b>Manualmente</b>.</p>
 <figure><img src="img/emails.jpg" alt="E-mails: resumo do turno, erros aguardando tratativa e resumo da semana"><figcaption>Os três e-mails: resumo do turno (com PDF anexo), cobrança diária e resumo da semana.</figcaption></figure>
+
+<h2 id="p5b"><span class="n">7b</span>Validar cada erro no Teams e identificar o operador</h2>
+<p>Funciona como os sistemas de vigilância com IA usados no poder público (o Smart Sampa, de São Paulo, por exemplo). A IA nunca decide sozinha: cada alerta é conferido por uma pessoa antes de virar tratativa, e tudo fica registrado.</p>
+<h3>Certeza da IA</h3>
+<p>Cada erro sai com uma <b>certeza de 0 a 100%</b>. Ela mede quanto do ciclo a IA viu a mão do operador e com que nitidez. Abaixo da <span class="rotulo">Certeza mínima para alertar</span> (tela <b>Configurações</b>, padrão 40%), o erro fica no relatório e no PDF marcado "baixa: sem alerta", mas não vai para o Teams nem para a lista. Assim, imagem ruim (luva, manga, contraluz, mão fora do quadro) não vira cobrança injusta.</p>
+<h3>Fluxo 5: Validar no Teams</h3>
+<ol class="passos">
+<li>Abra <b>ConfereVídeo · 5 Validar no Teams</b> e clique em <b>Ligar</b>. Ele confere a lista de erros a cada minuto.</li>
+<li>Cada erro novo (exceto os de demonstração) gera um cartão com a foto, o posto, a certeza da IA e os botões <b>Confirmar erro</b>, <b>Falso alarme</b> e <b>Ver recorte e foto</b>. Sem o <span class="rotulo">Link do canal do Teams</span>, o cartão vai para o chat do primeiro supervisor.</li>
+<li>O supervisor escolhe a tratativa, confirma ou corrige o operador e responde no próprio cartão. A resposta grava <code>Status</code>, <code>Tratativa</code>, <code>Operador</code>, <code>TratadoPor</code> e <code>TratadoEm</code> no item.</li>
+<li>Se ninguém responder em 12 horas, o gestor recebe um e-mail e o erro continua pendente para a cobrança diária e o app.</li>
+</ol>
+<div class="caixa"><b>Conexão do Teams</b>O cartão que espera resposta usa a ação <i>Publicar cartão e aguardar resposta</i>, que é padrão. Na primeira execução, confira em <b>Histórico de execuções</b> se a conexão do Teams está com a conta certa.</div>
+<h3>Quem é o operador (sem reconhecimento facial)</h3>
+<p>O ConfereVídeo não reconhece rostos. O operador é identificado de duas formas, nesta ordem:</p>
+<ol class="passos">
+<li><b>Crachá com QR</b>: no começo do turno, o operador mostra o QR do crachá (o do Emissor de Crachás) para a câmera por 1 a 2 segundos. O programa lê o nome e põe nos erros seguintes (<code>OperadorOrigem</code> = Crachá). Também serve um QR só com o nome escrito. Para desligar: <b>Configurações</b> &gt; <span class="rotulo">Identificar o operador pelo QR do crachá</span>.</li>
+<li><b>Escala</b>: se o erro chegar sem operador, o fluxo 2 procura na lista <code>ConfereVideo_Escala</code> quem estava no posto naquela hora (<code>Posto</code> igual, <code>Inicio</code> antes do erro, <code>Fim</code> vazio ou depois, <code>Turno</code> igual ou vazio) e preenche o operador (<code>OperadorOrigem</code> = Escala).</li>
+</ol>
+<p>Em qualquer caso, o supervisor confere e pode corrigir o nome no cartão do Teams ou no app antes de salvar.</p>
 
 <h2 id="p6"><span class="n">8</span>Montar o app de tratativa (Power Apps)</h2>
 <p>As três telas do app já estão prontas em texto, na pasta <code>Microsoft365\PowerApps</code>. Você só cria um app em branco, liga as listas e cola as telas.</p>
@@ -228,6 +250,8 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <tr><td>Fila crescendo, "sem conexão"</td><td>O PC está sem internet, ou o proxy da empresa bloqueia <code>*.powerplatform.com</code> / <code>*.logic.azure.com</code>. Fale com a TI. Os envios ficam guardados.</td></tr>
 <tr><td>Teste chega, mas os erros não viram itens da lista</td><td>Em <b>Meus fluxos</b> &gt; fluxo 2 &gt; <b>Histórico de execuções</b>, abra a execução marcada como <b>Falha</b> e veja a etapa em vermelho. O alerta no Teams sai mesmo assim. Quase sempre é o fluxo 1 que não rodou (listas não existem) ou falta permissão no site.</td></tr>
 <tr><td>Execução "Cancelada" no fluxo 2</td><td>A chave do programa é diferente da do fluxo (alguém gerou chave nova). Copie a chave na tela Microsoft 365 (botão <b>Copiar</b>), edite o fluxo 2, abra a condição <b>Conferir_chave</b> e cole a chave no lugar da antiga. Não reimporte o fluxo 2 por cima: isso traria de volta o gatilho Premium e mudaria a URL.</td></tr>
+<tr><td>Fluxo 5 não manda cartão</td><td>Confira se ele está ligado e se o erro não é de demonstração. O gatilho confere a lista a cada minuto, então o cartão pode levar até 1 a 2 minutos. Erros com certeza baixa não chegam à lista.</td></tr>
+<tr><td>Operador não aparece no erro</td><td>O QR do crachá precisa ficar parado e inteiro na imagem por 1 a 2 segundos, sem reflexo. Sem crachá, cadastre a pessoa na lista <code>ConfereVideo_Escala</code> com o <code>Posto</code> escrito igual ao do programa.</td></tr>
 <tr><td>Cartão chega sem a foto</td><td>Teams antigo no celular. Atualize o Teams; o botão "Ver recorte" funciona igual.</td></tr>
 <tr><td>Envios recusados (pasta <code>fila_envio\falhou</code>)</td><td>Corrija a causa e use <b>Reenviar o que falhou</b>. O registro de tudo fica em <code>fila_envio\envios.log</code>.</td></tr>
 <tr><td>Power Apps marca erro nas fórmulas depois de colar</td><td>Usou a pasta errada (vírgula × ponto e vírgula). Apague as telas e cole as da outra pasta. Se aparecer erro de "Variant", troque <code>galleryVertical</code> por <code>Vertical</code> no arquivo.</td></tr>
@@ -237,9 +261,10 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <ul>
 <li>Os dados ficam no Microsoft 365 da própria empresa (SharePoint, Teams, Outlook). Nada passa por servidores de terceiros.</li>
 <li>O fluxo só aceita envios com a chave de segurança do programa. Quem não tem a chave tem a execução cancelada.</li>
-<li>O sistema não faz reconhecimento facial. O operador é informado pelo supervisor na tratativa, quando necessário.</li>
+<li>O sistema não faz reconhecimento facial nem usa biometria (dado sensível pela LGPD, art. 11). O operador vem do QR do crachá ou da escala, e o supervisor confere o nome antes de salvar.</li>
+<li>Erros com certeza abaixo do mínimo não geram alerta nem cobrança. Eles ficam só no relatório local.</li>
 <li>Só os trechos com erro são gravados. O PC apaga os antigos sozinho; no SharePoint, aplique a regra de retenção da empresa.</li>
-<li>Toda detecção é automática e pode errar: o app pede a conferência do recorte ("confirmado" ou "falso alarme") antes de qualquer tratativa.</li>
+<li>Toda detecção é automática e pode errar: o cartão do Teams (fluxo 5) e o app pedem a conferência do recorte ("confirmado" ou "falso alarme") antes de qualquer tratativa. O resumo semanal mostra a porcentagem de falsos alarmes, para acompanhar a qualidade da IA.</li>
 </ul>
 
 <h2 id="ref"><span class="n">13</span>Referência: colunas das listas</h2>
@@ -247,12 +272,13 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <div class="rolar"><table>
 <tr><th>ConfereVideo_Erros</th><th>Tipo</th><th>ConfereVideo_Turnos</th><th>Tipo</th></tr>
 <tr><td>Title (código do erro)</td><td>Texto</td><td>Title (código do turno)</td><td>Texto</td></tr>
-<tr><td>TipoCodigo, Tipo, Unidade, Local, Posto, Turno, Origem, Fonte, Sessao, MomentoVideo, Tratativa, Operador, TratadoPor</td><td>Texto (uma linha)</td><td>Unidade, Local, Posto, Turno, Origem</td><td>Texto (uma linha)</td></tr>
+<tr><td>TipoCodigo, Tipo, Unidade, Local, Posto, Turno, Origem, Fonte, Sessao, MomentoVideo, Tratativa, Operador, OperadorOrigem, TratadoPor</td><td>Texto (uma linha)</td><td>Unidade, Local, Posto, Turno, Origem</td><td>Texto (uma linha)</td></tr>
 <tr><td>Status (padrão: Pendente)</td><td>Texto (uma linha)</td><td>Inicio, Fim</td><td>Data e hora</td></tr>
 <tr><td>DataHora, TratadoEm</td><td>Data e hora</td><td>Itens, Erros, ItensSemErro, SemLeitor, CaixaErrada, SemBipe, BipeDuplo</td><td>Número</td></tr>
-<tr><td>Bipes</td><td>Número</td><td>PctSemErro</td><td>Número (1 casa)</td></tr>
+<tr><td>Bipes, Confianca (0 a 100)</td><td>Número</td><td>PctSemErro</td><td>Número (1 casa)</td></tr>
 <tr><td>Observacao, LinkRecorte, Miniatura</td><td>Várias linhas, texto simples</td><td></td><td></td></tr>
 </table></div>
+<p><b>ConfereVideo_Escala</b>: <code>Title</code>, <code>Posto</code>, <code>Turno</code>, <code>Operador</code>, <code>Matricula</code> (Texto) e <code>Inicio</code>, <code>Fim</code> (Data e hora). Uma linha por pessoa e período; deixe <code>Fim</code> vazio para quem segue no posto. O <code>Posto</code> precisa ser escrito igual ao da tela <b>Configurações</b> do programa.</p>
 <p>A foto e o recorte de cada erro ficam como <b>anexos</b> do item. A coluna <code>Miniatura</code> guarda uma foto pequena, que o app e a lista mostram sem precisar abrir o anexo.</p>
 
 <h2 id="alt"><span class="n">14</span>Alternativas</h2>

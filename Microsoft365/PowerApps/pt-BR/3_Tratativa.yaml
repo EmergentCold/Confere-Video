@@ -63,7 +63,7 @@ Screens:
           Control: Label
           Properties:
             Text: |-
-              =varErro.Posto & " · " & Text(varErro.DataHora; "dd/mm/yyyy hh:mm")
+              =varErro.Posto & " · " & Text(varErro.DataHora; "dd/mm/yyyy hh:mm") & If(IsBlank(varErro.Confianca); ""; " · certeza da IA " & varErro.Confianca & "%") & If(IsBlank(varErro.OperadorOrigem); ""; " · operador pelo(a) " & Lower(varErro.OperadorOrigem))
             X: =68
             Y: =88
             Width: =560
