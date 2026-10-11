@@ -153,7 +153,7 @@ textarea { width: 100%; min-height: 120px; font: 12px/1.4 var(--f-mono); backgro
           <label class="arquivo" id="lb-arquivo">Abrir um vídeo seu…<input type="file" id="arquivo" accept="video/*"></label>
           <label class="arquivo" id="lb-gravar">Gravar com a câmera…<input type="file" id="gravar" accept="video/*" capture="environment"></label>
           <button class="bt" id="bt-demo" hidden>Voltar para a demonstração</button>
-          <div class="status" id="status"><b>Pronto.</b> A demonstração mostra um posto de separação de cigarros com um erro de cada tipo.</div>
+          <div class="status" id="status"><b>Pronto.</b> A demonstração mostra uma estação de picking com prateleira de 3 níveis e um erro de cada tipo.</div>
           <div class="barra" aria-hidden="true"><i id="progresso"></i></div>
         </div>
       </div>
@@ -256,7 +256,7 @@ const TIPOS_CURTO = { sem_leitor: "Sem passar no leitor", caixa_errada: "Outra c
 const AVISO = { sem_leitor: "ERRO: NAO PASSOU NO LEITOR", caixa_errada: "ERRO: CAIXA ERRADA", sem_bipe: "ERRO: PASSOU SEM BIPAR", bipe_duplo: "ERRO: BIPE DUPLO" };
 const ZONAS = ["prateleira", "leitor", "caixa_posto", "outras_caixas"];
 const CORES = { prateleira: "rgb(230,160,60)", leitor: "rgb(0,200,230)", caixa_posto: "rgb(60,180,60)", outras_caixas: "rgb(220,60,60)", operador: "rgb(150,150,150)" };
-const AREAS_DEMO = {"prateleiras": [[[0.7031, 0.2986], [0.8672, 0.2986], [0.8672, 0.6111], [0.7031, 0.6111]]], "leitor": [[0.6367, 0.4167], [0.6953, 0.4167], [0.6953, 0.5486], [0.6367, 0.5486]], "caixa_posto": [[0.4258, 0.7014], [0.5742, 0.7014], [0.5742, 0.8403], [0.4258, 0.8403]], "outras_caixas": [[[0.2422, 0.6181], [0.4047, 0.6181], [0.4047, 0.8403], [0.2422, 0.8403]], [[0.6055, 0.7014], [0.7539, 0.7014], [0.7539, 0.8403], [0.6055, 0.8403]]], "area_operador": []};
+const AREAS_DEMO = {"prateleiras": [[[0.6289, 0.2528], [0.9906, 0.2528], [0.9906, 0.7861], [0.6289, 0.7861]]], "leitor": [[0.5375, 0.3639], [0.6016, 0.3639], [0.6016, 0.4472], [0.5375, 0.4472]], "caixa_posto": [[0.375, 0.4722], [0.5, 0.4722], [0.5, 0.6472], [0.375, 0.6472]], "outras_caixas": [[[0.1172, 0.4722], [0.2344, 0.4722], [0.2344, 0.6472], [0.1172, 0.6472]], [[0.2469, 0.4722], [0.3672, 0.4722], [0.3672, 0.6472], [0.2469, 0.6472]]], "area_operador": []};
 const $ = (id) => document.getElementById(id);
 const hms = (s) => { s = Math.max(0, Math.floor(s)); return [Math.floor(s / 3600), Math.floor(s % 3600 / 60), s % 60].map(n => String(n).padStart(2, "0")).join(":"); };
 const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
@@ -386,6 +386,7 @@ async function lerAudio(bytes) {  // mono, 16 kHz (como o ffmpeg -ac 1 -ar 16000
 // ======================================================================
 // Ciclo do item: prateleira -> leitor -> caixa (porta da classe Ciclo)
 // ======================================================================
+const SALTO_MAX_MAO = 0.10;  // igual ao motor.py: quanto a mão pode andar entre dois quadros analisados
 class Ciclo {
   constructor(cfg, bipes) { this.cfg = cfg; this.bipes = bipes; this.k = cfg.quadros_para_confirmar; this.cont = new Map(); this.disparou = new Map(); this.n_ciclos = 0; this.n_ok = 0; this.n_incompletos = 0; this.escala = null; this.reset(); }
   reset() { this.estado = "livre"; this.t_ini = null; this.passou_leitor = false; this.trilha = []; this.ativa = null; }
@@ -412,7 +413,7 @@ class Ciclo {
     if (this.estado === "carregando" && this.trilha.length && pontos.size) {
       const ult = this.trilha[this.trilha.length - 1][1]; let mp = null, best = Infinity;
       for (const [m, p] of pontos) { const d = (p[0] - ult[0]) ** 2 + (p[1] - ult[1]) ** 2; if (d < best) { best = d; mp = m; } }
-      if (this.escala === null || Math.sqrt(best) <= this.escala * 0.18) this.ativa = mp;
+      if (this.escala === null || Math.sqrt(best) <= this.escala * SALTO_MAX_MAO) this.ativa = mp;
     }
     const novos = this._novos(zonasMao);
     if (this.estado === "carregando") {
@@ -590,7 +591,7 @@ async function abrirDemo() {  // abre a demonstração; se um formato não tocar
   if (demoCache) { await abrirVideo(demoCache.url); return demoCache; }
   const emb = await embutido("emb-demo");
   if (emb) {
-    const f = { nome: "demo_esteira_cigarros.mp4", url: URL.createObjectURL(new Blob([emb], { type: document.getElementById("emb-demo").dataset.tipo || "video/mp4" })), demo: true, bytes: emb.buffer };
+    const f = { nome: "demo_esteira_3_niveis.mp4", url: URL.createObjectURL(new Blob([emb], { type: document.getElementById("emb-demo").dataset.tipo || "video/mp4" })), demo: true, bytes: emb.buffer };
     await abrirVideo(f.url); diag("demo_aberta", { arq: "embutida", blob: true });
     return (demoCache = f);
   }
@@ -599,7 +600,7 @@ async function abrirDemo() {  // abre a demonstração; se um formato não tocar
     try {
       const r = await fetch(arq); if (!r.ok) throw new Error("não consegui baixar o vídeo de demonstração (" + r.status + ")");
       const bytes = await r.arrayBuffer();
-      const f = { nome: "demo_esteira_cigarros.mp4", url: URL.createObjectURL(new Blob([bytes], { type: arq.endsWith(".mp4") ? "video/mp4" : "video/webm" })), demo: true, bytes };
+      const f = { nome: "demo_esteira_3_niveis.mp4", url: URL.createObjectURL(new Blob([bytes], { type: arq.endsWith(".mp4") ? "video/mp4" : "video/webm" })), demo: true, bytes };
       try { await abrirVideo(f.url); }
       catch (e) { diag("demo_blob_falhou", { arq, erro: String(e.message || e) }); f.url = new URL(arq, document.baseURI).href; await abrirVideo(f.url); }
       diag("demo_aberta", { arq, blob: f.url.startsWith("blob:") });
@@ -608,7 +609,7 @@ async function abrirDemo() {  // abre a demonstração; se um formato não tocar
   }
   throw ultimo;
 }
-let fonte = { nome: "demo_esteira_cigarros.mp4", url: "", demo: true, bytes: null };
+let fonte = { nome: "demo_esteira_3_niveis.mp4", url: "", demo: true, bytes: null };
 let areasAtuais = AREAS_DEMO;
 let rodando = false, parar = false, resultado = null;
 
@@ -720,7 +721,7 @@ async function conferir() {
     }
     for (const reg of pend) reg.quadros = buf.filter(([tt]) => reg.ini <= tt && tt <= reg.fim).map(([, j]) => j);
     resultado = { nome: fonte.nome, demo: fonte.demo, itens: an.ciclo.n_ciclos, ok: an.ciclo.n_ok, erros: regs, som: resultadoSom, duracao: video.duration, interrompido: parar };
-    window.__resultado = { itens: resultado.itens, ok: resultado.ok, erros: regs.map(r => r.tipo), som: resultadoSom };
+    window.__resultado = { itens: resultado.itens, ok: resultado.ok, erros: regs.map(r => r.tipo), momentos: regs.map(r => r.t_video), som: resultadoSom };
     diag("conferencia_ok", { ...window.__resultado, segundos: Math.round((performance.now() - t0) / 1000), interrompido: parar });
     status(`<b>${parar ? "Parado" : "Concluído"}.</b> ${resultado.itens} itens conferidos, ${regs.length} com erro. Som: ${resultadoSom}.`);
     montarRelatorio();
@@ -855,7 +856,7 @@ $("bt-demo").onclick = async () => {
   fonte = await abrirDemo(); areasAtuais = AREAS_DEMO;
   $("posto").innerHTML = "<b>Emergent Cold · Guarulhos II</b>Esteira de separação · Posto 03 (demonstração)";
   await mostrarCapa(); $("bt-conferir").textContent = "▶ Conferir a demonstração"; $("bt-demo").hidden = true;
-  status("<b>Pronto.</b> A demonstração mostra um posto de separação de cigarros com um erro de cada tipo.");
+  status("<b>Pronto.</b> A demonstração mostra uma estação de picking com prateleira de 3 níveis e um erro de cada tipo.");
 };
 let downloads = null;
 $("rel-csv").onclick = async () => {

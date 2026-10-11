@@ -517,6 +517,13 @@ class MicrofoneAoVivo:
 # =========================================================================
 # Ciclo da mão: prateleira -> leitor -> caixa
 # =========================================================================
+# Quanto a mão pode "andar" entre dois quadros analisados (fração da diagonal da imagem) para a conferência
+# seguir a mesma mão quando a IA troca esquerda/direita. Com 8 quadros/s, 10% (~150 px em 1280x720) já cobre
+# um movimento rápido; mais que isso, quando a mão do item some por um quadro, a conferência passava para a
+# outra mão, parada longe, e podia acusar "caixa errada" ou "sem leitor" com ela.
+SALTO_MAX_MAO = 0.10
+
+
 class Ciclo:
     """Segue a mão que pegou o item: prateleira -> leitor -> caixa.
 
@@ -602,7 +609,7 @@ class Ciclo:
             ult = self.trilha[-1][1]
             m_perto = min(pontos_por_mao, key=lambda m: (pontos_por_mao[m][0] - ult[0]) ** 2 + (pontos_por_mao[m][1] - ult[1]) ** 2)
             d = ((pontos_por_mao[m_perto][0] - ult[0]) ** 2 + (pontos_por_mao[m_perto][1] - ult[1]) ** 2) ** 0.5
-            if self.escala is None or d <= self.escala * 0.18:
+            if self.escala is None or d <= self.escala * SALTO_MAX_MAO:
                 self.ativa = m_perto
         novos = self._novos(zonas_mao)
         if self.estado == "carregando":

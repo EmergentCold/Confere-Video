@@ -46,7 +46,7 @@ PACOTES = [("#c8202a", "#ffffff"), ("#1d4f9c", "#ffffff"), ("#d4a417", "#ffffff"
 
 # ------------------------------------------------------------------ geometria da cena (pixels)
 X_OP = 560                              # centro do operador
-PASSO = 190                             # passo para o lado até a caixa do pedido vizinho
+PASSO = 250                             # passo para o lado até a caixa do pedido vizinho
 QUADRIL_Y = 440
 PRAT_X0, PRAT_X1 = 805, 1268
 DX = 0                                   # monitor e leitor, afastados da caixa ao lado
@@ -58,7 +58,7 @@ NIVEIS = {  # nome, (topo das caixas, viga)
 NOME_NIVEL = {1: "Nível 1 (ombro)", 2: "Nível 2 (cintura)", 3: "Nível 3 (abaixo da cintura)"}
 ESTEIRA_Y = 466                          # face de cima dos roletes
 CAIXAS = {  # x0, x1 (fundo em ESTEIRA_Y, altura 96); as de outros pedidos ficam antes, na esteira
-    "outra_esq2": (150, 300), "outra_esq": (316, 470), "posto": (480, 640),
+    "outra_esq2": (150, 300), "outra_esq": (316, 470), "posto": (494, 654),
 }
 ETIQUETA = {"outra_esq2": "PED 4523", "outra_esq": "PED 4522", "posto": "PED 4521"}
 CAIXA_ALT = 96
@@ -67,8 +67,8 @@ LEITOR = (726 + DX, 282)                     # onde a mão apresenta o item ao l
 ALVOS = {
     "repouso": (628, 406),
     "leitor": LEITOR,
-    "posto": (604, 392),
-    "outra_esq": (394, 394),
+    "posto": (640, 390),
+    "outra_esq": (404, 382),
     1: (862, 226), 2: (866, 376), 3: (842, 524),
 }
 POSTURA = {1: (8, 0), 2: (14, 10), 3: (24, 55)}  # inclinação (graus) e agachamento (px) por nível
@@ -296,7 +296,7 @@ def desenhar_operador(img, pose):
     cv2.ellipse(img, (cx, cy - 14), (36, 30), lean, 180, 360, CAPACETE, -1, cv2.LINE_AA)
     aba = [rot((cx + dx, cy - 14), (cx, cy), lean) for dx in (-44, 44)]
     cv2.line(img, tuple(map(int, aba[0])), tuple(map(int, aba[1])), CAPACETE, 7, cv2.LINE_AA)
-    return {"ombro_d": P(56, -200), "ombro_e": P(-56, -200), "cintura_e": P(-92, -36)}
+    return {"ombro_d": P(56, -200), "ombro_e": P(-56, -200)}
 
 
 def desenhar_braco(img, s, mao, k, segura=None):
@@ -319,7 +319,7 @@ def desenhar_braco(img, s, mao, k, segura=None):
 
 # ------------------------------------------------------------------ roteiro
 ITENS = [  # nível, encenação
-    (1, "ok"), (2, "ok"), (3, "ok"), (1, "sem_leitor"), (2, "ok"), (3, "ok"),
+    (1, "ok"), (2, "ok"), (3, "ok"), (2, "sem_leitor"), (1, "ok"), (3, "ok"),
     (1, "bipe_duplo"), (2, "ok"), (3, "caixa_errada"), (1, "ok"), (2, "sem_bipe"), (3, "ok"),
 ]
 TEXTO = {
@@ -363,9 +363,8 @@ def montar_roteiro():
             k(0.9, alvo_prat, lean, ag)
         eventos["pega"].append((t + 0.2, i, sku))
         k(0.5, alvo_prat, lean, ag)
-        if tipo == "sem_leitor":  # passa por cima do leitor, direto para a caixa
-            k(0.6, (690, 200), lean * 0.3, ag * 0.3)
-            k(0.6, ALVOS["posto"])
+        if tipo == "sem_leitor":  # do nível 2 direto para a caixa, por baixo do leitor
+            k(1.1, ALVOS["posto"])
         else:
             if nivel == 3:  # levanta com o item junto da prateleira e depois vai ao leitor
                 k(0.4, (836, 470), lean * 0.8, ag * 0.8)
@@ -380,7 +379,7 @@ def montar_roteiro():
             k(0.6, ALVOS["leitor"])
             if tipo == "caixa_errada":  # dá um passo para o lado e solta na caixa do pedido vizinho
                 k(0.45, (650, 312))
-                k(0.8, (650 - PASSO, 312), dx=-PASSO)
+                k(1.0, (650 - PASSO, 312), dx=-PASSO)
                 k(0.45, ALVOS["outra_esq"], dx=-PASSO)
             else:
                 k(0.8, ALVOS["posto"])
@@ -389,7 +388,7 @@ def montar_roteiro():
         k(0.5, chaves[-1][1], chaves[-1][2], chaves[-1][3], chaves[-1][5])
         if tipo == "caixa_errada":  # volta para o lugar
             k(0.35, (650 - PASSO, 312), dx=-PASSO)
-            k(0.8, (650, 312))
+            k(1.0, (650, 312))
         k(0.7, ALVOS["repouso"])
         eventos["legendas"].append((ini, t, i, nivel, tipo))
     return chaves, eventos, t + 1.5
@@ -482,18 +481,18 @@ def main(saida=PASTA / "demo_esteira_3_niveis.mp4"):
             mao, lean, ag, kd, dx = pose_em(chaves, t)
             img = fundo.copy()
             pts = desenhar_operador(img, {"lean": lean, "agacha": ag, "dx": dx})
+            # braço esquerdo: mostra o crachá no começo; depois fica solto ao lado do corpo, atrás das
+            # caixas (só a mão que separa aparece, como numa câmera bem posicionada)
+            mostra = T_CRACHA[0] <= t < T_CRACHA[1]
+            if not mostra:
+                oe = pts["ombro_e"]
+                desenhar_braco(img, oe, (oe[0] - 12, oe[1] + 214), k=1)
             img = np.where(m3, frente, img)
             for nome, (x0, x1) in CAIXAS.items():
                 caixa_aberta(img, x0, x1, ESTEIRA_Y - 4, CAIXA_ALT, conteudo[nome])
                 colar_rotulo(img, ((x0 + x1) // 2, ESTEIRA_Y - 30), ETIQUETA[nome], 12, "#16202e", "#ffffff")
-            # braço esquerdo: na cintura, ou mostrando o crachá no começo
-            mostra = T_CRACHA[0] <= t < T_CRACHA[1]
-            # ao agachar, a mão esquerda se apoia na beira da esteira (fora da caixa do pedido)
-            u = min(1.0, ag / 90)
-            ce = pts["cintura_e"]
-            mao_e = (500, 300) if mostra else (ce[0] + (452 - ce[0]) * u, ce[1] + (470 - ce[1]) * u)
-            desenhar_braco(img, pts["ombro_e"], mao_e, k=1)
             if mostra:
+                desenhar_braco(img, pts["ombro_e"], (500, 300), k=1)
                 img[176:404, 412:582] = cracha
             desenhar_braco(img, pts["ombro_d"], mao, k=kd, segura=segura)
             # legenda do que foi encenado

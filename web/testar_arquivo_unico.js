@@ -1,5 +1,5 @@
 // Abre o ConfereVideo.html direto do disco (file://, como dois cliques), confere a demonstração
-// e falha se o resultado não for o do programa: 10 itens e os 4 erros, um de cada tipo.
+// e falha se o resultado não for o do programa: 12 itens e os 4 erros, um de cada tipo.
 const { chromium } = require('playwright');
 (async () => {
   const arq = process.argv[2], foto = process.argv[3];
@@ -18,6 +18,6 @@ const { chromium } = require('playwright');
   console.log(logs.join('\n'));
   await b.close();
   const r = JSON.parse(JSON.stringify(res));
-  if (r.itens !== 10 || JSON.stringify(r.erros) !== JSON.stringify(['sem_leitor', 'bipe_duplo', 'caixa_errada', 'sem_bipe'])) { console.error('resultado diferente do esperado'); process.exit(1); }
+  if (r.itens !== 12 || JSON.stringify(r.erros) !== JSON.stringify(['sem_leitor', 'bipe_duplo', 'caixa_errada', 'sem_bipe'])) { console.error('resultado diferente do esperado'); process.exit(1); }
   console.log('OK: mesmo resultado do programa instalado.');
 })().catch((e) => { console.error(e); process.exit(1); });

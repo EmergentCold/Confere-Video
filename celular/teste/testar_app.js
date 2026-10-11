@@ -1,5 +1,5 @@
 // Abre o ConfereVídeo no emulador Android, confere a demonstração e confere o resultado
-// (o mesmo do programa instalado: 10 itens, 4 erros — um de cada tipo).
+// (o mesmo do programa instalado: 12 itens, 4 erros — um de cada tipo).
 const { _android: android } = require("playwright-core");
 const PKG = "com.emergentcold.conferevideo";
 const ESPERADO = ["sem_leitor", "bipe_duplo", "caixa_errada", "sem_bipe"];
@@ -26,7 +26,7 @@ const ESPERADO = ["sem_leitor", "bipe_duplo", "caixa_errada", "sem_bipe"];
   await device.screenshot({ path: "celular/teste/3_relatorio.png" });
   await device.close();
   if (r.falha) throw new Error("a conferência falhou: " + r.falha);
-  if (r.itens !== 10 || JSON.stringify(r.erros) !== JSON.stringify(ESPERADO)) throw new Error("resultado diferente do esperado (10 itens e " + ESPERADO.join(", ") + ")");
+  if (r.itens !== 12 || JSON.stringify(r.erros) !== JSON.stringify(ESPERADO)) throw new Error("resultado diferente do esperado (12 itens e " + ESPERADO.join(", ") + ")");
   console.log("OK: mesmo resultado do programa instalado.");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

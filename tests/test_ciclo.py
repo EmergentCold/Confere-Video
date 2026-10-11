@@ -182,3 +182,27 @@ def test_certeza_considera_a_nitidez_do_punho(cfg):
         erros += c.atualizar(t, {0: zs}, None, {0: (0, 0)}, {0: 0.3})  # IA pouco segura do punho
         t += 1 / FPS
     assert erros and erros[0]["confianca"] == 40
+
+
+def test_nao_passa_para_a_outra_mao_quando_a_do_item_some(cfg):
+    # a mão do item (id 0) some por alguns quadros; a outra mão (id 1), parada longe, está na caixa:
+    # a conferência não pode "soltar" o item com ela
+    c = Ciclo(cfg)
+    c.escala = 1000.0
+    t, erros = 0.0, []
+
+    def q(zonas, pontos):
+        nonlocal t
+        erros.extend(c.atualizar(t, zonas, None, pontos))
+        t += 1 / FPS
+
+    for _ in range(3):
+        q({0: {P}}, {0: (100, 100)})
+    for _ in range(3):  # só a outra mão aparece, a 150 da última posição, dentro de outra caixa
+        q({1: {"outras_caixas"}}, {1: (250, 100)})
+    assert erros == [] and c.estado == "carregando" and c.ativa == 0
+    for _ in range(2):
+        q({0: {L}}, {0: (120, 100)})
+    for _ in range(3):
+        q({0: {C}}, {0: (140, 100)})
+    assert erros == [] and c.n_ok == 1

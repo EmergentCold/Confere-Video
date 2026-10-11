@@ -30,7 +30,7 @@ def main():
     tag = '<script src="ort.wasm.min.js"></script>'
     assert pagina.count(tag) == 1
     motor_js = (ort / "ort.wasm.min.js").read_text(encoding="utf-8").replace("</script", "<\\/script")
-    demo = RAIZ / "web" / "demo.webm" if webm else RAIZ / "demo" / "demo_esteira_cigarros.mp4"
+    demo = RAIZ / "web" / "demo.webm" if webm else RAIZ / "demo" / "demo_esteira_3_niveis.mp4"
     embutidos = (bloco("emb-wasm", (ort / "ort-wasm-simd-threaded.wasm").read_bytes(), gz=True)
                  + bloco("emb-mjs", (ort / "ort-wasm-simd-threaded.mjs").read_bytes())
                  + bloco("emb-modelo", (RAIZ / "web" / "yolo11n-pose.onnx").read_bytes(), gz=True)
