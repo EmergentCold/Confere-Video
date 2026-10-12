@@ -1,0 +1,26 @@
+table Info
+
+	column Fonte
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Fonte
+
+	column Atualizado
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		sourceColumn: Atualizado
+
+	partition Info = m
+		mode: import
+		source =
+				let
+				    UsarExemplo = Text.Trim(SiteSharePoint) = "" or Text.Lower(Text.Trim(SiteSharePoint)) = "exemplo",
+				    Agora = DateTimeZone.RemoveZone(DateTimeZone.SwitchZone(DateTimeZone.UtcNow(), FusoHorario)),
+				    Fonte = if UsarExemplo then "Dados de exemplo. Para ver os seus: Transformar dados > Editar parâmetros > SiteSharePoint"
+				            else "SharePoint: " & SiteSharePoint,
+				    Tabela = #table(type table [Fonte = text, Atualizado = datetime], {{Fonte, Agora}})
+				in
+				    Tabela
+
+	annotation PBI_ResultType = Table

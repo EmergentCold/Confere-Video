@@ -1,0 +1,112 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "ac913cc48669e7593709",
+  "position": {
+    "x": 444,
+    "y": 188,
+    "z": 210,
+    "height": 200,
+    "width": 820,
+    "tabOrder": 210
+  },
+  "visual": {
+    "visualType": "pivotTable",
+    "query": {
+      "queryState": {
+        "Rows": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PostoTurno"
+                    }
+                  },
+                  "Property": "Posto"
+                }
+              },
+              "queryRef": "PostoTurno.Posto",
+              "nativeQueryRef": "Posto",
+              "active": true
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PostoTurno"
+                    }
+                  },
+                  "Property": "Turno"
+                }
+              },
+              "queryRef": "PostoTurno.Turno",
+              "nativeQueryRef": "Turno",
+              "active": true
+            }
+          ]
+        },
+        "Columns": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Tipo"
+                }
+              },
+              "queryRef": "Erros.Tipo",
+              "nativeQueryRef": "Tipo",
+              "active": true
+            }
+          ]
+        },
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Medidas"
+                    }
+                  },
+                  "Property": "Erros alertados"
+                }
+              },
+              "queryRef": "Medidas.Erros alertados",
+              "nativeQueryRef": "Erros alertados"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Erros por posto, turno e tipo'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

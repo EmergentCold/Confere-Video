@@ -5,7 +5,7 @@ Conferência da separação por vídeo. O sistema acompanha a mão do operador e
 (sem passar no leitor, caixa errada, sem bipe, bipe duplo).
 
 - Guia de uso: [`GUIA.md`](GUIA.md)
-- Microsoft 365 (SharePoint, Teams, Outlook, Power Automate, Power Apps): [`Microsoft365/GUIA_MICROSOFT_365.html`](Microsoft365/GUIA_MICROSOFT_365.html)
+- Microsoft 365 (SharePoint, Teams, Outlook, Power Automate, Power Apps, Power BI): [`Microsoft365/GUIA_MICROSOFT_365.html`](Microsoft365/GUIA_MICROSOFT_365.html)
 
 ## Estrutura
 

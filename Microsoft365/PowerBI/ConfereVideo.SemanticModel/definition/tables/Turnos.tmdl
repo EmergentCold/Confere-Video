@@ -1,0 +1,133 @@
+table Turnos
+
+	column Codigo
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Codigo
+
+	column Inicio
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		sourceColumn: Inicio
+
+	column Fim
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		sourceColumn: Fim
+
+	column Data
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Data
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Unidade
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Unidade
+
+	column Local
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Local
+
+	column Posto
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Posto
+
+	column Turno
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Turno
+
+	column PostoTurno
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: PostoTurno
+
+	column Origem
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Origem
+
+	column Itens
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Itens
+
+	column Erros
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: Erros
+
+	column ItensSemErro
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: ItensSemErro
+
+	column SemLeitor
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: SemLeitor
+
+	column CaixaErrada
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: CaixaErrada
+
+	column SemBipe
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: SemBipe
+
+	column BipeDuplo
+		dataType: int64
+		formatString: #,0
+		summarizeBy: none
+		sourceColumn: BipeDuplo
+
+	partition Turnos = m
+		mode: import
+		source =
+				let
+				    UsarExemplo = Text.Trim(SiteSharePoint) = "" or Text.Lower(Text.Trim(SiteSharePoint)) = "exemplo",
+				    ParaLocal = (v as any) as nullable datetime =>
+				        if v = null or v = "" then null
+				        else DateTimeZone.RemoveZone(DateTimeZone.SwitchZone(
+				            if Value.Is(v, type datetimezone) then v
+				            else if Value.Is(v, type datetime) then DateTime.AddZone(v, 0)
+				            else DateTimeZone.From(v), FusoHorario)),
+				    Num = (v as any) as nullable number => if v = null or v = "" then null else Number.From(v),
+				    Txt = (v as any) as text => if v = null then "" else Text.Trim(Text.From(v)),
+				    OuPadrao = (v as text, padrao as text) as text => if v = "" then padrao else v,
+				    Bruto = if UsarExemplo then DadosExemplo[Turnos]
+				            else SharePoint.Tables(SiteSharePoint, [ApiVersion = 15]){[Title = ListaTurnos]}[Items],
+				    Selecionado = Table.SelectColumns(Bruto, {"Title", "Unidade", "Local", "Posto", "Turno", "Origem", "Inicio", "Fim", "Itens", "Erros", "ItensSemErro", "SemLeitor", "CaixaErrada", "SemBipe", "BipeDuplo"}, MissingField.UseNull),
+				    Convertido = Table.TransformColumns(Selecionado,
+				        List.Transform({"Title", "Unidade", "Local", "Posto", "Turno", "Origem"}, each {_, Txt, type text}) &
+				        List.Transform({"Itens", "Erros", "ItensSemErro", "SemLeitor", "CaixaErrada", "SemBipe", "BipeDuplo"}, each {_, (v) => if Num(v) = null then 0 else Num(v), type number}) & {
+				        {"Inicio", ParaLocal, type nullable datetime}, {"Fim", ParaLocal, type nullable datetime}}),
+				    SemDemonstracao = if IncluirDemonstracao then Convertido
+				                      else Table.SelectRows(Convertido, each [Origem] <> "Demonstração"),
+				    Rotulos = Table.TransformColumns(SemDemonstracao, {
+				        {"Posto", each OuPadrao(_, "(sem posto)"), type text}, {"Turno", each OuPadrao(_, "(sem turno)"), type text}}),
+				    Renomeado = Table.RenameColumns(Rotulos, {{"Title", "Codigo"}}),
+				    ComData = Table.AddColumn(Renomeado, "Data", each if [Inicio] = null then null else DateTime.Date([Inicio]), type nullable date),
+				    ComChave = Table.AddColumn(ComData, "PostoTurno", each [Posto] & " | " & [Turno], type text),
+				    Tipado = Table.TransformColumnTypes(ComChave, List.Transform({"Itens", "Erros", "ItensSemErro", "SemLeitor", "CaixaErrada", "SemBipe", "BipeDuplo"}, each {_, Int64.Type}))
+				in
+				    Tipado
+
+	annotation PBI_ResultType = Table

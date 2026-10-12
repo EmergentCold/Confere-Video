@@ -1,0 +1,189 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "b3953fada50f55786e61",
+  "position": {
+    "x": 444,
+    "y": 396,
+    "z": 220,
+    "height": 312,
+    "width": 820,
+    "tabOrder": 220
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "DataHora"
+                }
+              },
+              "queryRef": "Erros.DataHora",
+              "nativeQueryRef": "DataHora"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Posto"
+                }
+              },
+              "queryRef": "Erros.Posto",
+              "nativeQueryRef": "Posto"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Turno"
+                }
+              },
+              "queryRef": "Erros.Turno",
+              "nativeQueryRef": "Turno"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Tipo"
+                }
+              },
+              "queryRef": "Erros.Tipo",
+              "nativeQueryRef": "Tipo"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Operador"
+                }
+              },
+              "queryRef": "Erros.Operador",
+              "nativeQueryRef": "Operador"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Status"
+                }
+              },
+              "queryRef": "Erros.Status",
+              "nativeQueryRef": "Status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Tratativa"
+                }
+              },
+              "queryRef": "Erros.Tratativa",
+              "nativeQueryRef": "Tratativa"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Confianca"
+                }
+              },
+              "queryRef": "Erros.Confianca",
+              "nativeQueryRef": "Confianca"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "LinkRecorte"
+                }
+              },
+              "queryRef": "Erros.LinkRecorte",
+              "nativeQueryRef": "LinkRecorte"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Erros"
+                  }
+                },
+                "Property": "DataHora"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Erros (mais recentes primeiro)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

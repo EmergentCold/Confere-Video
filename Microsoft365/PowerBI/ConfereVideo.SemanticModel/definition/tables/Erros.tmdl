@@ -1,0 +1,162 @@
+table Erros
+
+	column Codigo
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Codigo
+
+	column TipoCodigo
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: TipoCodigo
+
+	column Tipo
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tipo
+
+	column DataHora
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		sourceColumn: DataHora
+
+	column Data
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Data
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Hora
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Hora
+
+	column Unidade
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Unidade
+
+	column Local
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Local
+
+	column Posto
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Posto
+
+	column Turno
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Turno
+
+	column PostoTurno
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: PostoTurno
+
+	column Origem
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Origem
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+	column Tratativa
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tratativa
+
+	column Operador
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Operador
+
+	column OperadorOrigem
+		dataType: string
+		summarizeBy: none
+		sourceColumn: OperadorOrigem
+
+	column TratadoPor
+		dataType: string
+		summarizeBy: none
+		sourceColumn: TratadoPor
+
+	column TratadoEm
+		dataType: dateTime
+		formatString: dd/mm/yyyy hh:nn
+		summarizeBy: none
+		sourceColumn: TratadoEm
+
+	column Bipes
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Bipes
+
+	column Confianca
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Confianca
+
+	column 'Faixa de certeza'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Faixa de certeza
+
+	column LinkRecorte
+		dataType: string
+		dataCategory: WebUrl
+		summarizeBy: none
+		sourceColumn: LinkRecorte
+
+	partition Erros = m
+		mode: import
+		source =
+				let
+				    UsarExemplo = Text.Trim(SiteSharePoint) = "" or Text.Lower(Text.Trim(SiteSharePoint)) = "exemplo",
+				    ParaLocal = (v as any) as nullable datetime =>
+				        if v = null or v = "" then null
+				        else DateTimeZone.RemoveZone(DateTimeZone.SwitchZone(
+				            if Value.Is(v, type datetimezone) then v
+				            else if Value.Is(v, type datetime) then DateTime.AddZone(v, 0)
+				            else DateTimeZone.From(v), FusoHorario)),
+				    Num = (v as any) as nullable number => if v = null or v = "" then null else Number.From(v),
+				    Txt = (v as any) as text => if v = null then "" else Text.Trim(Text.From(v)),
+				    OuPadrao = (v as text, padrao as text) as text => if v = "" then padrao else v,
+				    Bruto = if UsarExemplo then DadosExemplo[Erros]
+				            else SharePoint.Tables(SiteSharePoint, [ApiVersion = 15]){[Title = ListaErros]}[Items],
+				    Selecionado = Table.SelectColumns(Bruto, {"Title", "TipoCodigo", "Tipo", "Unidade", "Local", "Posto", "Turno", "Origem", "Status", "Tratativa", "Operador", "OperadorOrigem", "TratadoPor", "LinkRecorte", "DataHora", "TratadoEm", "Bipes", "Confianca"}, MissingField.UseNull),
+				    Convertido = Table.TransformColumns(Selecionado,
+				        List.Transform({"Title", "TipoCodigo", "Tipo", "Unidade", "Local", "Posto", "Turno", "Origem", "Status", "Tratativa", "Operador", "OperadorOrigem", "TratadoPor", "LinkRecorte"}, each {_, Txt, type text}) & {
+				        {"DataHora", ParaLocal, type nullable datetime}, {"TratadoEm", ParaLocal, type nullable datetime},
+				        {"Bipes", Num, type nullable number}, {"Confianca", Num, type nullable number}}),
+				    SemDemonstracao = if IncluirDemonstracao then Convertido
+				                      else Table.SelectRows(Convertido, each [Origem] <> "Demonstração"),
+				    Rotulos = Table.TransformColumns(SemDemonstracao, {
+				        {"Posto", each OuPadrao(_, "(sem posto)"), type text}, {"Turno", each OuPadrao(_, "(sem turno)"), type text},
+				        {"Operador", each OuPadrao(_, "(não identificado)"), type text},
+				        {"OperadorOrigem", each OuPadrao(_, "(não identificado)"), type text}}),
+				    Renomeado = Table.RenameColumns(Rotulos, {{"Title", "Codigo"}}),
+				    ComData = Table.AddColumn(Renomeado, "Data", each if [DataHora] = null then null else DateTime.Date([DataHora]), type nullable date),
+				    ComHora = Table.AddColumn(ComData, "Hora", each if [DataHora] = null then null else Time.Hour([DataHora]), Int64.Type),
+				    ComChave = Table.AddColumn(ComHora, "PostoTurno", each [Posto] & " | " & [Turno], type text),
+				    ComFaixa = Table.AddColumn(ComChave, "Faixa de certeza", each
+				        if [Confianca] = null then "(sem dado)" else if [Confianca] < 60 then "40 a 59%"
+				        else if [Confianca] < 80 then "60 a 79%" else "80 a 100%", type text),
+				    Tipado = Table.TransformColumnTypes(ComFaixa, {{"Bipes", Int64.Type}, {"Confianca", Int64.Type}})
+				in
+				    Tipado
+
+	annotation PBI_ResultType = Table

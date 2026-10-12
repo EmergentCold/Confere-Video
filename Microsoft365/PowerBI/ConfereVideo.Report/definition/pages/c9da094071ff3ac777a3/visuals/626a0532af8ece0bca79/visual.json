@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "626a0532af8ece0bca79",
+  "position": {
+    "x": 16,
+    "y": 188,
+    "z": 200,
+    "height": 256,
+    "width": 620,
+    "tabOrder": 200
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "Faixa de certeza"
+                }
+              },
+              "queryRef": "Erros.Faixa de certeza",
+              "nativeQueryRef": "Faixa de certeza",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Medidas"
+                    }
+                  },
+                  "Property": "% falso alarme"
+                }
+              },
+              "queryRef": "Medidas.% falso alarme",
+              "nativeQueryRef": "% falso alarme"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Erros"
+                  }
+                },
+                "Property": "Faixa de certeza"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'% de falso alarme por faixa de certeza da IA'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

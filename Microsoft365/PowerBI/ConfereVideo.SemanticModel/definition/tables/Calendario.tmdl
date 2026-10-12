@@ -1,0 +1,72 @@
+table Calendario
+	dataCategory: Time
+
+	column Data
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		isKey
+		summarizeBy: none
+		sourceColumn: Data
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Ano
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Ano
+
+	column AnoMesNumero
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: AnoMesNumero
+
+	column Mes
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Mes
+		sortByColumn: AnoMesNumero
+
+	column DiaSemanaNumero
+		dataType: int64
+		formatString: 0
+		isHidden
+		summarizeBy: none
+		sourceColumn: DiaSemanaNumero
+
+	column DiaSemana
+		dataType: string
+		summarizeBy: none
+		sourceColumn: DiaSemana
+		sortByColumn: DiaSemanaNumero
+
+	column Semana
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Semana
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Calendario = m
+		mode: import
+		source =
+				let
+				    Datas = List.RemoveNulls(List.Combine({Erros[Data], Turnos[Data]})),
+				    Hoje = Date.From(DateTimeZone.SwitchZone(DateTimeZone.UtcNow(), FusoHorario)),
+				    Inicio = if List.IsEmpty(Datas) then Date.AddDays(Hoje, -30) else Date.StartOfMonth(List.Min(Datas)),
+				    Fim = if List.IsEmpty(Datas) then Hoje else List.Max({List.Max(Datas), Hoje}),
+				    Lista = List.Dates(Inicio, Duration.Days(Fim - Inicio) + 1, #duration(1, 0, 0, 0)),
+				    Base = Table.FromList(Lista, Splitter.SplitByNothing(), type table [Data = date]),
+				    Ano = Table.AddColumn(Base, "Ano", each Date.Year([Data]), Int64.Type),
+				    AnoMes = Table.AddColumn(Ano, "AnoMesNumero", each Date.Year([Data]) * 100 + Date.Month([Data]), Int64.Type),
+				    Mes = Table.AddColumn(AnoMes, "Mes", each Date.ToText([Data], [Format = "MMM/yyyy", Culture = "pt-BR"]), type text),
+				    DiaNum = Table.AddColumn(Mes, "DiaSemanaNumero", each Date.DayOfWeek([Data], Day.Monday) + 1, Int64.Type),
+				    Dia = Table.AddColumn(DiaNum, "DiaSemana", each Date.ToText([Data], [Format = "ddd", Culture = "pt-BR"]), type text),
+				    Semana = Table.AddColumn(Dia, "Semana", each Date.StartOfWeek([Data], Day.Monday), type date)
+				in
+				    Semana
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "fac9e71ad134a362b15c",
+  "position": {
+    "x": 644,
+    "y": 452,
+    "z": 230,
+    "height": 256,
+    "width": 620,
+    "tabOrder": 230
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Erros"
+                    }
+                  },
+                  "Property": "OperadorOrigem"
+                }
+              },
+              "queryRef": "Erros.OperadorOrigem",
+              "nativeQueryRef": "OperadorOrigem",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Medidas"
+                    }
+                  },
+                  "Property": "Erros alertados"
+                }
+              },
+              "queryRef": "Medidas.Erros alertados",
+              "nativeQueryRef": "Erros alertados"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Medidas"
+                  }
+                },
+                "Property": "Erros alertados"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Operador identificado por (sem reconhecimento facial)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

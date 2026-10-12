@@ -31,6 +31,7 @@ from PIL import Image, ImageTk  # noqa: E402
 import integracao  # noqa: E402
 import motor  # noqa: E402
 import power_platform  # noqa: E402
+import powerbi  # noqa: E402
 
 AUTO = "--auto" in sys.argv  # aberto pela inicialização do Windows: já liga a câmera
 
@@ -671,6 +672,7 @@ class PaginaM365(ttk.Frame):
         ttk.Button(b, text="Salvar", style="Primary.TButton", command=self.salvar).pack(side="left")
         ttk.Button(b, text="Testar envio", command=self.testar).pack(side="left", padx=8)
         ttk.Button(b, text="Gerar fluxos do Power Automate…", command=self.gerar).pack(side="left")
+        ttk.Button(b, text="Gerar painel do Power BI…", command=self.gerar_powerbi).pack(side="left", padx=(8, 0))
         ttk.Button(b, text="Reenviar o que falhou", command=self.reenviar).pack(side="left", padx=8)
         ttk.Button(b, text="Abrir guia", command=self.guia).pack(side="left")
         self.msg = tk.StringVar()
@@ -734,6 +736,24 @@ class PaginaM365(ttk.Frame):
             return
         self.msg.set(f"{len(arqs)} fluxos gerados em {pasta}. No Power Automate: Meus fluxos > Importar > "
                      "Importar pacote (Herdado), um de cada vez, começando pelo 1.")
+        abrir(pasta)
+
+    def gerar_powerbi(self):
+        self.salvar(aviso=False)
+        m = self.app.cfg["m365"]
+        d = filedialog.askdirectory(title="Onde salvar o painel do Power BI")
+        if not d:
+            return
+        pasta = Path(d) / "ConfereVideo_PowerBI"
+        try:
+            pbip = powerbi.gerar_painel(m, pasta)
+        except Exception as e:
+            messagebox.showerror("ConfereVídeo", f"Não consegui gerar o painel: {e}")
+            return
+        sem_site = not (m.get("site_sharepoint") or "").strip()
+        self.msg.set(f"Painel gerado em {pasta}. Abra {pbip.name} no Power BI Desktop e entre com a conta da "
+                     "empresa." + (" Sem o site do SharePoint preenchido, ele mostra os dados de exemplo."
+                                    if sem_site else ""))
         abrir(pasta)
 
     def reenviar(self):

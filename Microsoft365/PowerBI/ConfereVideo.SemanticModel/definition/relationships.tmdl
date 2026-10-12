@@ -1,0 +1,15 @@
+relationship Erros_Data
+	fromColumn: Erros.Data
+	toColumn: Calendario.Data
+
+relationship Turnos_Data
+	fromColumn: Turnos.Data
+	toColumn: Calendario.Data
+
+relationship Erros_PostoTurno
+	fromColumn: Erros.PostoTurno
+	toColumn: PostoTurno.PostoTurno
+
+relationship Turnos_PostoTurno
+	fromColumn: Turnos.PostoTurno
+	toColumn: PostoTurno.PostoTurno

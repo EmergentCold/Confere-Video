@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "4968f2b4460a80a91a92",
+  "position": {
+    "x": 644,
+    "y": 452,
+    "z": 230,
+    "height": 256,
+    "width": 620,
+    "tabOrder": 230
+  },
+  "visual": {
+    "visualType": "clusteredColumnChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PostoTurno"
+                    }
+                  },
+                  "Property": "Posto"
+                }
+              },
+              "queryRef": "PostoTurno.Posto",
+              "nativeQueryRef": "Posto",
+              "active": true
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Medidas"
+                    }
+                  },
+                  "Property": "Erros a cada mil itens"
+                }
+              },
+              "queryRef": "Medidas.Erros a cada mil itens",
+              "nativeQueryRef": "Erros a cada mil itens"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "PostoTurno"
+                  }
+                },
+                "Property": "Posto"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Erros a cada mil itens, por posto'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

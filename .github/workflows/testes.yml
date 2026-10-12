@@ -7,12 +7,21 @@ on:
 jobs:
   testes:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # painel do Power BI: o modelo (TMDL) é lido pela biblioteca oficial (.NET) e as consultas M
+      # pelo analisador oficial de Power Query (Node); sem eles, esses dois testes são pulados
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund --prefix tests/validar_m
       # sem a IA (ultralytics/torch): os testes usam uma IA de mentira
-      - run: pip install numpy opencv-python-headless pyyaml pillow fpdf2 pytest
-      - run: python -m pytest -q tests
+      - run: pip install numpy opencv-python-headless pyyaml pillow fpdf2 pytest jsonschema
+      - run: python -m pytest -q -rs tests

@@ -1,0 +1,30 @@
+table PostoTurno
+
+	column Posto
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Posto
+
+	column Turno
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Turno
+
+	column PostoTurno
+		dataType: string
+		isHidden
+		isKey
+		summarizeBy: none
+		sourceColumn: PostoTurno
+
+	partition PostoTurno = m
+		mode: import
+		source =
+				let
+				    Pares = Table.Combine({Table.SelectColumns(Erros, {"Posto", "Turno"}), Table.SelectColumns(Turnos, {"Posto", "Turno"})}),
+				    Distintos = Table.Distinct(Pares),
+				    ComChave = Table.AddColumn(Distintos, "PostoTurno", each [Posto] & " | " & [Turno], type text)
+				in
+				    ComChave
+
+	annotation PBI_ResultType = Table

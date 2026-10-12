@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "b035ef3ea82dbc5d6b60",
+  "position": {
+    "x": 16.0,
+    "y": 88,
+    "z": 100,
+    "height": 92,
+    "width": 201.33333333333334,
+    "tabOrder": 100
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Medidas"
+                    }
+                  },
+                  "Property": "Itens conferidos"
+                }
+              },
+              "queryRef": "Medidas.Itens conferidos",
+              "nativeQueryRef": "Itens conferidos"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

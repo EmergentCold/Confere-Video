@@ -1,0 +1,57 @@
+table Medidas
+
+	measure 'Itens conferidos' = SUM(Turnos[Itens])
+		formatString: #,0
+
+	measure 'Itens sem erro' = SUM(Turnos[ItensSemErro])
+		formatString: #,0
+
+	measure '% itens sem erro' = DIVIDE([Itens sem erro], [Itens conferidos])
+		formatString: 0.0%
+
+	measure 'Erros detectados' = SUM(Turnos[Erros])
+		formatString: #,0
+
+	measure 'Erros a cada mil itens' = DIVIDE([Erros detectados], [Itens conferidos]) * 1000
+		formatString: #,0.0
+
+	measure 'Erros alertados' = COUNTROWS(Erros)
+		formatString: #,0
+
+	measure 'Erros pendentes' = COALESCE(CALCULATE(COUNTROWS(Erros), Erros[Status] = "Pendente"), 0)
+		formatString: #,0
+
+	measure 'Erros confirmados' = CALCULATE(COUNTROWS(Erros), Erros[Status] = "Confirmado")
+		formatString: #,0
+
+	measure 'Falsos alarmes' = CALCULATE(COUNTROWS(Erros), Erros[Status] = "Falso alarme")
+		formatString: #,0
+
+	measure '% falso alarme' = DIVIDE([Falsos alarmes], [Erros confirmados] + [Falsos alarmes])
+		formatString: 0.0%
+
+	measure 'Horas até a tratativa' = AVERAGEX(FILTER(Erros, NOT ISBLANK(Erros[TratadoEm]) && NOT ISBLANK(Erros[DataHora])), DATEDIFF(Erros[DataHora], Erros[TratadoEm], MINUTE) / 60)
+		formatString: #,0.0
+
+	measure 'Certeza média da IA' = DIVIDE(AVERAGE(Erros[Confianca]), 100)
+		formatString: 0%
+
+	measure 'Fonte dos dados' = SELECTEDVALUE(Info[Fonte])
+
+	measure 'Atualizado em' = "Atualizado em " & FORMAT(MAX(Info[Atualizado]), "dd/mm/yyyy hh:nn")
+
+	column Medidas
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Medidas
+
+	partition Medidas = m
+		mode: import
+		source =
+				let
+				    Tabela = #table(type table [Medidas = text], {})
+				in
+				    Tabela
+
+	annotation PBI_ResultType = Table

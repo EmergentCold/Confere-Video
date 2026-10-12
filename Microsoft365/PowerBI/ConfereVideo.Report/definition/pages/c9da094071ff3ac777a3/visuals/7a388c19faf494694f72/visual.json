@@ -1,0 +1,58 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "7a388c19faf494694f72",
+  "position": {
+    "x": 968,
+    "y": 8,
+    "z": 978,
+    "height": 64,
+    "width": 148,
+    "tabOrder": 978
+  },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "PostoTurno"
+                    }
+                  },
+                  "Property": "Posto"
+                }
+              },
+              "queryRef": "PostoTurno.Posto",
+              "nativeQueryRef": "Posto",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "data": [
+        {
+          "properties": {
+            "mode": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Dropdown'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "syncGroup": {
+      "groupName": "Posto",
+      "fieldChanges": true,
+      "filterChanges": true
+    }
+  }
+}

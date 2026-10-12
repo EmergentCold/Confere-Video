@@ -78,6 +78,7 @@ Tela **Microsoft 365**. Cada erro vira item numa lista do SharePoint (com foto e
 2. Importe os 5 fluxos no Power Automate, rode o fluxo 1 (cria as listas) e cole no programa a URL do fluxo 2. Ligue o fluxo 5 para o supervisor validar cada erro direto no Teams.
 3. **Testar envio**: chega um cartão no Teams.
 4. Monte o app colando as telas da pasta `Microsoft365\PowerApps`.
+5. **Power BI**: clique em **Gerar painel do Power BI…** e abra o `ConfereVideo.pbip` no Power BI Desktop (indicadores por dia, posto, turno, operador e qualidade da IA). Sem o site preenchido, ele mostra dados de exemplo.
 
 **Certeza da IA e operador.** Cada erro sai com uma certeza de 0 a 100% (quanto do ciclo a IA viu a mão e com que nitidez). Abaixo do mínimo da tela **Configurações** (padrão 40%), o erro fica só no relatório, sem alerta. O operador é identificado pelo **QR do crachá** mostrado à câmera no começo do turno ou pela lista de **escala** no SharePoint, nunca pelo rosto.
 

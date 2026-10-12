@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.12.0/schema.json",
+  "name": "7be7fb9c610b4236f471",
+  "position": {
+    "x": 16,
+    "y": 52,
+    "z": 5,
+    "height": 30,
+    "width": 620,
+    "tabOrder": 5
+  },
+  "visual": {
+    "visualType": "cardVisual",
+    "query": {
+      "queryState": {
+        "Data": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Medidas"
+                    }
+                  },
+                  "Property": "Fonte dos dados"
+                }
+              },
+              "queryRef": "Medidas.Fonte dos dados",
+              "nativeQueryRef": "Fonte dos dados"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

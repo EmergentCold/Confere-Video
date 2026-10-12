@@ -1,0 +1,8 @@
+{
+  "name": "validar-m",
+  "private": true,
+  "description": "Confere a sintaxe das consultas Power Query (M) do painel do Power BI com o analisador oficial da Microsoft.",
+  "dependencies": {
+    "@microsoft/powerquery-parser": "2.0.0"
+  }
+}

@@ -58,7 +58,7 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <header><div class="w">
 <div class="marca">ConfereVídeo · conferência da separação por vídeo</div>
 <h1>Guia de implantação no Microsoft 365</h1>
-<p>Como ligar o ConfereVídeo ao SharePoint, ao Teams, ao Outlook, ao Power Automate e ao Power Apps da empresa, do zero, em cerca de 40 minutos.</p>
+<p>Como ligar o ConfereVídeo ao SharePoint, ao Teams, ao Outlook, ao Power Automate, ao Power Apps e ao Power BI da empresa, do zero, em cerca de 40 minutos.</p>
 </div></header>
 <main class="w">
 
@@ -73,6 +73,7 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <li><a href="#p5">Ligar a cobrança diária e o resumo semanal</a></li>
 <li><a href="#p5b">Validar cada erro no Teams e identificar o operador</a></li>
 <li><a href="#p6">Montar o app de tratativa (Power Apps)</a></li>
+<li><a href="#p6b">Painel no Power BI</a></li>
 <li><a href="#p7">Automação no PC da câmera</a></li>
 <li><a href="#p8">Teste completo</a></li>
 <li><a href="#prob">Quando algo não sai certo</a></li>
@@ -220,6 +221,20 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <p>O botão <b>Demonstração</b> no painel mostra ou esconde os itens que vieram da demonstração do programa.</p>
 <div class="caixa"><b>Avisos azuis de "delegação" no Studio</b>São esperados nas contagens de confirmados e falsos alarmes: cada contagem considera até 2.000 itens do período escolhido, mais do que suficiente para um posto. A lista de erros mostra todos os pendentes e, nos outros filtros, os últimos 60 dias. Assim ela continua rápida mesmo com mais de 5.000 itens na lista do SharePoint.</div>
 
+<h2 id="p6b"><span class="n">8b</span>Painel no Power BI</h2>
+<p>Indicadores da operação em três páginas: <b>Visão geral</b> (itens conferidos, % sem erro, erros a cada mil itens, pendentes, falso alarme, tempo até a tratativa, erros por dia, tipo, hora e posto), <b>Pessoas e tratativas</b> (erros confirmados por operador, matriz posto × turno × tipo e a lista dos erros com o link do recorte) e <b>Qualidade da IA</b> (certeza média, falso alarme por faixa de certeza e por tipo, situação dos erros e como o operador foi identificado). Ele lê as mesmas listas do SharePoint que o app usa.</p>
+<figure><img src="img/powerbi.png" alt="Página Visão geral do painel do Power BI com dados de exemplo"><figcaption>Prévia aproximada da página "Visão geral", com os dados de exemplo que vêm no painel.</figcaption></figure>
+<ol class="passos">
+<li>Instale o <b>Power BI Desktop</b> (gratuito, na Microsoft Store). Use a versão de 2026 ou mais nova.</li>
+<li>No ConfereVídeo, tela <b>Microsoft 365</b>: preencha o site do SharePoint, salve e clique em <b>Gerar painel do Power BI…</b>. Sai a pasta <code>ConfereVideo_PowerBI</code>, já apontando para o seu site e as suas listas.</li>
+<li>Abra o arquivo <code>ConfereVideo.pbip</code> com dois cliques. Na primeira vez, clique em <b>Atualizar</b>; quando pedir as credenciais do SharePoint, escolha <b>Conta organizacional</b> &gt; <b>Entrar</b> com a conta da empresa &gt; <b>Conectar</b>. Se perguntar o nível de privacidade, escolha <b>Organizacional</b>.</li>
+<li>Para trocar o site ou as listas depois: <b>Página Inicial</b> &gt; <b>Transformar dados</b> &gt; <b>Editar parâmetros</b> (<code>SiteSharePoint</code>, <code>ListaErros</code>, <code>ListaTurnos</code>) &gt; <b>OK</b> &gt; <b>Aplicar alterações</b>.</li>
+<li>Para os gestores verem pelo navegador ou pelo Teams: <b>Página Inicial</b> &gt; <b>Publicar</b> &gt; escolha o workspace. No Power BI online, abra as configurações do modelo semântico, informe as credenciais (OAuth2, conta organizacional) e ligue a <b>atualização agendada</b> (por exemplo, a cada 3 horas). No Teams: <b>+</b> no canal &gt; <b>Power BI</b> &gt; escolha o relatório.</li>
+</ol>
+<div class="caixa"><b>Quer só ver como fica?</b>Abra <code>Microsoft365\PowerBI\ConfereVideo.pbip</code>, que vem com o programa. Sem o site preenchido (parâmetro <code>SiteSharePoint</code> = <code>exemplo</code>), ele mostra 4 semanas de dados de exemplo de 3 postos e 2 turnos. A linha "Dados de exemplo" no topo some quando você aponta para o seu site.</div>
+<div class="caixa aviso"><b>Se o Power BI Desktop não abrir o .pbip</b>Atualize o Power BI Desktop. Em versões antigas, ligue em <b>Arquivo</b> &gt; <b>Opções e configurações</b> &gt; <b>Opções</b> &gt; <b>Recursos de visualização</b>: "Opção de salvar projeto do Power BI (.pbip)", "Armazenar o modelo semântico no formato TMDL" e "Armazenar relatórios no formato de metadados aprimorado (PBIR)". Reinicie o Power BI Desktop e abra de novo.</div>
+<p>Os itens da demonstração ficam de fora do painel. Para incluí-los, mude o parâmetro <code>IncluirDemonstracao</code> para <code>true</code>. O fuso das datas é o de Brasília (parâmetro <code>FusoHorario</code> = <code>-3</code>).</p>
+
 <h2 id="p7"><span class="n">9</span>Automação no PC da câmera</h2>
 <p>Na tela <b>Automação</b> do ConfereVídeo:</p>
 <div class="rolar"><table>
@@ -252,6 +267,7 @@ footer{color:var(--muted);font-size:13px;margin:46px 0 30px;border-top:1px solid
 <tr><td>Execução "Cancelada" no fluxo 2</td><td>A chave do programa é diferente da do fluxo (alguém gerou chave nova). Copie a chave na tela Microsoft 365 (botão <b>Copiar</b>), edite o fluxo 2, abra a condição <b>Conferir_chave</b> e cole a chave no lugar da antiga. Não reimporte o fluxo 2 por cima: isso traria de volta o gatilho Premium e mudaria a URL.</td></tr>
 <tr><td>Fluxo 5 não manda cartão</td><td>Confira se ele está ligado e se o erro não é de demonstração. O gatilho confere a lista a cada minuto, então o cartão pode levar até 1 a 2 minutos. Erros com certeza baixa não chegam à lista.</td></tr>
 <tr><td>Operador não aparece no erro</td><td>O QR do crachá precisa ficar parado e inteiro na imagem por 1 a 2 segundos, sem reflexo. Sem crachá, cadastre a pessoa na lista <code>ConfereVideo_Escala</code> com o <code>Posto</code> escrito igual ao do programa.</td></tr>
+<tr><td>Power BI: "não foi possível encontrar a lista" ou tabela vazia</td><td>Confira em <b>Editar parâmetros</b> o endereço do site (sem <code>/Lists/...</code> no final) e os nomes das listas. A conta usada no Power BI precisa ter acesso de leitura ao site.</td></tr>
 <tr><td>Cartão chega sem a foto</td><td>Teams antigo no celular. Atualize o Teams; o botão "Ver recorte" funciona igual.</td></tr>
 <tr><td>Envios recusados (pasta <code>fila_envio\falhou</code>)</td><td>Corrija a causa e use <b>Reenviar o que falhou</b>. O registro de tudo fica em <code>fila_envio\envios.log</code>.</td></tr>
 <tr><td>Power Apps marca erro nas fórmulas depois de colar</td><td>Usou a pasta errada (vírgula × ponto e vírgula). Apague as telas e cole as da outra pasta. Se aparecer erro de "Variant", troque <code>galleryVertical</code> por <code>Vertical</code> no arquivo.</td></tr>
