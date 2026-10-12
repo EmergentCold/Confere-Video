@@ -55,12 +55,20 @@ def campos_dos_visuais():
             yield f, tipo, entidade, prop
 
 
+def _sem_bytes_do_gzip(texto):
+    """Os dados de exemplo vão comprimidos (gzip); a compressão pode variar entre versões do zlib,
+    então a comparação usa o conteúdo descomprimido."""
+    return re.sub(r'Binary\.FromText\("([^"]+)"',
+                  lambda m: gzip.decompress(base64.b64decode(m.group(1))).decode("utf-8"), texto)
+
+
 def test_projeto_no_repositorio_e_o_que_o_gerador_produz(tmp_path):
     gerado = tmp_path / "pbi"
     shutil.copytree(PROJ, gerado)
     powerbi.gravar(gerado)
     for rel, txt in powerbi.arquivos_projeto().items():
-        assert (PROJ / rel).read_text(encoding="utf-8") == (gerado / rel).read_text(encoding="utf-8"), rel
+        assert _sem_bytes_do_gzip((PROJ / rel).read_text(encoding="utf-8")) == \
+            _sem_bytes_do_gzip((gerado / rel).read_text(encoding="utf-8")), rel
     no_repo = {p.relative_to(PROJ) for p in PROJ.rglob("*") if p.is_file()}
     gerados = {p.relative_to(gerado) for p in gerado.rglob("*") if p.is_file()}
     assert no_repo == gerados, "rode: python powerbi.py"

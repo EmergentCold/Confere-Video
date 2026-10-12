@@ -123,7 +123,9 @@ def _embutir(erros, resumo):
         cols = list(linhas[0])
         return {"cols": cols, "rows": [[l[c] for c in cols] for l in linhas]}
     bruto = json.dumps({"erros": tab(erros), "turnos": tab(resumo)}, ensure_ascii=False, separators=(",", ":"))
-    return base64.b64encode(gzip.compress(bruto.encode("utf-8"), 9, mtime=0)).decode()
+    gz = bytearray(gzip.compress(bruto.encode("utf-8"), 9, mtime=0))
+    gz[9] = 255  # byte do sistema operacional no cabeçalho: muda entre versões do Python; fixo = "desconhecido"
+    return base64.b64encode(bytes(gz)).decode()
 
 
 def indicadores(erros, resumo):
